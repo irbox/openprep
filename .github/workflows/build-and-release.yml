@@ -1,0 +1,54 @@
+name: Build and Release APK
+
+# This workflow triggers on pushes to the main branch,
+# when a new Tag (e.g., v1.0) is created, or manually.
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          # Using Gradle 8.2 to match our Android Gradle Plugin 8.2.0
+          gradle-version: '8.2' 
+
+      - name: Build Debug APK
+        # Since you are using the Web UI and don't have the gradlew script, 
+        # we call gradle directly.
+        run: gradle assembleDebug
+
+      - name: Upload APK as Artifact (Available on Action Run page)
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenPrep-App-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish to GitHub Releases
+        # Only run this step if a tag starting with 'v' was pushed (e.g. v1.0)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/debug/app-debug.apk
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
