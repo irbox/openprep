@@ -10,6 +10,31 @@ private val Context.dataStore by preferencesDataStore(name = "user_progress")
 
 class ProgressRepository(private val context: Context) {
     
+    // --- STREAK TRACKING (Gamification) ---
+    private val LAST_OPENED_DAY = longPreferencesKey("last_opened_day")
+    private val CURRENT_STREAK = intPreferencesKey("current_streak")
+
+    fun getCurrentStreak(): Flow<Int> = context.dataStore.data.map { it[CURRENT_STREAK] ?: 0 }
+
+    suspend fun updateDailyStreak() {
+        val currentDay = System.currentTimeMillis() / (1000 * 60 * 60 * 24) // Current epoch day
+        context.dataStore.edit { prefs ->
+            val lastDay = prefs[LAST_OPENED_DAY] ?: 0L
+            val currentStreak = prefs[CURRENT_STREAK] ?: 0
+
+            if (lastDay == 0L || currentDay > lastDay + 1) {
+                // First time opening, or they missed a day. Reset to 1.
+                prefs[CURRENT_STREAK] = 1
+                prefs[LAST_OPENED_DAY] = currentDay
+            } else if (currentDay == lastDay + 1) {
+                // They came back the very next day! Increment streak.
+                prefs[CURRENT_STREAK] = currentStreak + 1
+                prefs[LAST_OPENED_DAY] = currentDay
+            }
+            // If currentDay == lastDay, they already opened it today. Do nothing.
+        }
+    }
+
     // --- ONBOARDING & PROFILE ---
     private val HAS_SEEN_ONBOARDING = booleanPreferencesKey("has_seen_onboarding")
     private val USER_NAME = stringPreferencesKey("user_name")
