@@ -38,6 +38,7 @@ fun StatsScreen(
             var attemptedQuizzes = 0
             var totalScore = 0
 
+            // Calculate progress instantly offline
             manifest.subjects.forEach { subject ->
                 subject.modules.forEach { module ->
                     if (module.type.lowercase() == "video") {
@@ -61,13 +62,13 @@ fun StatsScreen(
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Video Progress", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(16.dp))
                     LinearProgressIndicator(
                         progress = videoProgress,
                         modifier = Modifier.fillMaxWidth().height(8.dp),
                         color = MaterialTheme.colorScheme.primary
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(16.dp))
                     Text("$watchedVideos of $totalVideos Videos Watched")
                 }
             }
@@ -76,7 +77,7 @@ fun StatsScreen(
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Quiz Performance", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(16.dp))
                     Text("Quizzes Attempted: $attemptedQuizzes / $totalQuizzes")
                     if (attemptedQuizzes > 0) {
                         Text(
