@@ -46,57 +46,56 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
     val coroutineScope = rememberCoroutineScope()
     
     val progressRepo = remember { ProgressRepository(context) }
-    
-    // Auto-Login Logic
     val savedServerUrl by progressRepo.getServerUrl().collectAsState(initial = null)
-    var hasAttemptedAutoLogin by remember { mutableStateOf(false) }
-
-    // If we find a saved URL on startup, connect automatically!
-    LaunchedEffect(savedServerUrl) {
-        if (savedServerUrl != null && !hasAttemptedAutoLogin && uiState is AppState.Setup) {
-            hasAttemptedAutoLogin = true
-            viewModel.connectToServer(savedServerUrl!!)
-        }
-    }
 
     NavHost(navController = navController, startDestination = "splash") {
         
         composable("splash") {
             SplashScreen(
                 onSplashFinished = {
-                    // Check if we are already logged in via Auto-login
-                    if (uiState is AppState.Success) {
-                        navController.navigate("dashboard") { popUpTo("splash") { inclusive = true } }
+                    if (!savedServerUrl.isNullOrBlank()) {
+                        viewModel.connectToServer(savedServerUrl!!)
                     } else {
                         navController.navigate("setup") { popUpTo("splash") { inclusive = true } }
                     }
                 }
             )
+
+            // BUG FIX: Safe navigation triggered by State changes
+            LaunchedEffect(uiState) {
+                if (uiState is AppState.Success) {
+                    navController.navigate("dashboard") { popUpTo("splash") { inclusive = true } }
+                } else if (uiState is AppState.Error) {
+                    navController.navigate("setup") { popUpTo("splash") { inclusive = true } }
+                }
+            }
         }
 
         composable("setup") {
-            if (uiState is AppState.Success) {
-                navController.navigate("dashboard") { popUpTo("setup") { inclusive = true } }
+            // BUG FIX: Safe navigation triggered by State changes
+            LaunchedEffect(uiState) {
+                if (uiState is AppState.Success) {
+                    navController.navigate("dashboard") { popUpTo("setup") { inclusive = true } }
+                }
             }
+
             ServerSetupScreen(
                 uiState = uiState, 
                 onConnect = { url -> 
-                    coroutineScope.launch { progressRepo.saveServerUrl(url) } // Save for next time!
+                    coroutineScope.launch { progressRepo.saveServerUrl(url) }
                     viewModel.connectToServer(url) 
                 }
             )
         }
 
         composable("dashboard") {
-            val state = uiState
-            if (state is AppState.Success) {
+            if (uiState is AppState.Success) {
                 MainAppScreen(
-                    manifest = state.manifest,
+                    manifest = (uiState as AppState.Success).manifest,
                     progressRepo = progressRepo,
                     currentServerUrl = viewModel.currentServerUrl,
                     onDisconnect = {
-                        coroutineScope.launch { progressRepo.clearServerUrl() } // Wipe URL
-                        hasAttemptedAutoLogin = false
+                        coroutineScope.launch { progressRepo.clearServerUrl() }
                         viewModel.resetSetup()
                         navController.navigate("setup") { popUpTo("dashboard") { inclusive = true } }
                     },
@@ -105,7 +104,6 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
                         val encodedUrl = URLEncoder.encode(fullUrl, StandardCharsets.UTF_8.toString())
                         val encodedTitle = URLEncoder.encode(module.title, StandardCharsets.UTF_8.toString())
                         
-                        // Save as Last Played
                         coroutineScope.launch { 
                             progressRepo.markModuleCompleted(module.id)
                             progressRepo.saveLastPlayedModule(module.id)
@@ -114,12 +112,13 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
                         when (module.type.lowercase()) {
                             "video" -> navController.navigate("videoPlayer/${module.id}/$encodedUrl/$encodedTitle")
                             "qbank" -> navController.navigate("quiz/${module.id}/$encodedUrl")
-                            "pdf", "article" -> navController.navigate("pdfViewer/$encodedUrl/$encodedTitle")
+                            "pdf" -> navController.navigate("pdfViewer/$encodedUrl/$encodedTitle")
+                            "article" -> navController.navigate("webView/$encodedUrl/$encodedTitle")
                         }
                     }
                 )
             } else { 
-                navController.navigate("setup") 
+                LaunchedEffect(Unit) { navController.navigate("setup") }
             }
         }
 
@@ -138,6 +137,13 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
             val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
             val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString())
             PdfViewerScreen(pdfUrl = url, title = title, onNavigateBack = { navController.popBackStack() })
+        }
+        
+        // NEW: Web/Article Viewer Route
+        composable("webView/{url}/{title}") { backStackEntry ->
+            val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
+            val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString())
+            WebViewScreen(url = url, title = title, onNavigateBack = { navController.popBackStack() })
         }
     }
 }
