@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,7 +28,24 @@ fun QuizScreen(quizUrl: String, onNavigateBack: () -> Unit, viewModel: QuizViewM
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("QBank") },
+                title = { 
+                    // NEW: Display Timer
+                    if (uiState is QuizState.Active) {
+                        val state = uiState as QuizState.Active
+                        val minutes = state.timeRemainingSeconds / 60
+                        val seconds = state.timeRemainingSeconds % 60
+                        val timeString = String.format("%02d:%02d", minutes, seconds)
+                        val isLowTime = state.timeRemainingSeconds <= 60
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Timer, contentDescription = "Timer", tint = if (isLowTime) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
+                            Spacer(Modifier.width(8.dp))
+                            Text(timeString, color = if (isLowTime) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        Text("QBank")
+                    }
+                },
                 navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.Default.ArrowBack, "Back") } },
                 actions = {
                     if (uiState is QuizState.Active) {
@@ -48,10 +66,10 @@ fun QuizScreen(quizUrl: String, onNavigateBack: () -> Unit, viewModel: QuizViewM
         Box(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
             when (val state = uiState) {
                 is QuizState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-                is QuizState.Error -> Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
+                is QuizState.Error -> Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.Center))
                 is QuizState.Finished -> {
                     Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Quiz Completed!", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                        Text("Exam Completed!", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(16.dp))
                         Text("Your Score: ${state.score} / ${state.total}", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.height(32.dp))
