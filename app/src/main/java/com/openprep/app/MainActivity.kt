@@ -29,9 +29,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            OpenPrepTheme {
+            val progressRepo = remember { ProgressRepository(applicationContext) }
+            val themeMode by progressRepo.getThemeMode().collectAsState(initial = 0)
+
+            OpenPrepTheme(themeMode = themeMode) { // <- DYNAMIC THEME APPLIED!
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    OpenPrepApp()
+                    OpenPrepApp(progressRepo)
                 }
             }
         }
@@ -39,13 +42,12 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
+fun OpenPrepApp(progressRepo: ProgressRepository, viewModel: MainViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     val navController = rememberNavController()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     
-    val progressRepo = remember { ProgressRepository(context) }
     val savedServerUrl by progressRepo.getServerUrl().collectAsState(initial = null)
     val hasSeenOnboarding by progressRepo.hasSeenOnboarding().collectAsState(initial = false)
 
@@ -109,7 +111,6 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
                         viewModel.resetSetup()
                         navController.navigate("setup") { popUpTo("dashboard") { inclusive = true } }
                     },
-                    // NEW: We force a re-connect which overrides the cache
                     onSyncRequested = {
                          viewModel.connectToServer(viewModel.currentServerUrl)
                     },
@@ -123,7 +124,6 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
                         val encodedUrl = URLEncoder.encode(fullUrl, StandardCharsets.UTF_8.toString())
                         val encodedTitle = URLEncoder.encode(module.title, StandardCharsets.UTF_8.toString())
                         
-                        // NEW: Log it to the timeline history!
                         coroutineScope.launch { 
                             progressRepo.markModuleCompleted(module.id)
                             progressRepo.saveLastPlayedModule(module.id)
