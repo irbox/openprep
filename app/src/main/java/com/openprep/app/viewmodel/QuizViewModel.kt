@@ -19,7 +19,8 @@ sealed class QuizState {
         val currentQuestionIndex: Int,
         val selectedOption: Int?,
         val hasSubmittedAnswer: Boolean,
-        val score: Int
+        val score: Int,
+        val markedForReview: Set<Int> // 1:1 FEATURE: Track flagged questions
     ) : QuizState()
     data class Finished(val score: Int, val total: Int) : QuizState()
     data class Error(val message: String) : QuizState()
@@ -39,21 +40,15 @@ class QuizViewModel : ViewModel() {
                 val request = Request.Builder().url(url).build()
                 client.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) throw Exception("Failed to load quiz")
-                    
                     val body = response.body?.string() ?: throw Exception("Empty body")
                     val quiz = json.decodeFromString<QuizManifest>(body)
                     
                     _uiState.value = QuizState.Active(
-                        manifest = quiz,
-                        currentQuestionIndex = 0,
-                        selectedOption = null,
-                        hasSubmittedAnswer = false,
-                        score = 0
+                        manifest = quiz, currentQuestionIndex = 0, selectedOption = null, 
+                        hasSubmittedAnswer = false, score = 0, markedForReview = emptySet()
                     )
                 }
-            } catch (e: Exception) {
-                _uiState.value = QuizState.Error(e.localizedMessage ?: "Unknown Error")
-            }
+            } catch (e: Exception) { _uiState.value = QuizState.Error(e.localizedMessage ?: "Unknown Error") }
         }
     }
 
@@ -61,6 +56,16 @@ class QuizViewModel : ViewModel() {
         val state = _uiState.value
         if (state is QuizState.Active && !state.hasSubmittedAnswer) {
             _uiState.value = state.copy(selectedOption = index)
+        }
+    }
+
+    fun toggleMarkForReview() {
+        val state = _uiState.value
+        if (state is QuizState.Active) {
+            val currentMarks = state.markedForReview
+            val idx = state.currentQuestionIndex
+            val newMarks = if (currentMarks.contains(idx)) currentMarks - idx else currentMarks + idx
+            _uiState.value = state.copy(markedForReview = newMarks)
         }
     }
 
@@ -79,8 +84,7 @@ class QuizViewModel : ViewModel() {
             if (state.currentQuestionIndex + 1 < state.manifest.questions.size) {
                 _uiState.value = state.copy(
                     currentQuestionIndex = state.currentQuestionIndex + 1,
-                    selectedOption = null,
-                    hasSubmittedAnswer = false
+                    selectedOption = null, hasSubmittedAnswer = false
                 )
             } else {
                 _uiState.value = QuizState.Finished(state.score, state.manifest.questions.size)
