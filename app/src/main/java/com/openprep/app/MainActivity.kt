@@ -20,7 +20,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.openprep.app.data.ProgressRepository
-import com.openprep.app.ui.screens.DashboardScreen
+import com.openprep.app.ui.screens.MainAppScreen
 import com.openprep.app.ui.screens.QuizScreen
 import com.openprep.app.ui.screens.ServerSetupScreen
 import com.openprep.app.ui.screens.VideoPlayerScreen
@@ -64,12 +64,9 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
             ServerSetupScreen(uiState = uiState, onConnect = { url -> viewModel.connectToServer(url) })
         }
 
-// ... ("dashboard" route)
-
         composable("dashboard") {
             val state = uiState
             if (state is AppState.Success) {
-                // WE SWAPPED THIS TO MainAppScreen
                 MainAppScreen(
                     manifest = state.manifest,
                     progressRepo = progressRepo,
@@ -103,8 +100,6 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
             } else { navController.navigate("setup") }
         }
 
-// ... (dashboard end)
-
         composable("videoPlayer/{id}/{url}/{title}") { backStackEntry ->
             val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
             val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString())
@@ -112,11 +107,9 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
         }
 
         composable("quiz/{id}/{url}") { backStackEntry ->
-            val id = backStackEntry.arguments?.getString("id") ?: ""
+            // val id = backStackEntry.arguments?.getString("id") ?: "" // For saving scores later
             val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
             
-            // To save scores, update your QuizScreen to accept the repository and ID, 
-            // and call progressRepo.saveModuleScore(id, finalScore) when the quiz finishes!
             QuizScreen(quizUrl = url, onNavigateBack = { navController.popBackStack() })
         }
     }
