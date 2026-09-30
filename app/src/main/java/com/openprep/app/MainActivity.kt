@@ -1,5 +1,7 @@
 package com.openprep.app
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,11 +12,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.openprep.app.ui.screens.DashboardScreen
+import com.openprep.app.ui.screens.QuizScreen
 import com.openprep.app.ui.screens.ServerSetupScreen
 import com.openprep.app.ui.screens.VideoPlayerScreen
 import com.openprep.app.ui.theme.OpenPrepTheme
@@ -44,25 +48,22 @@ class MainActivity : ComponentActivity() {
 fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     val navController = rememberNavController()
+    val context = LocalContext.current
 
     NavHost(navController = navController, startDestination = "setup") {
         
-        // 1. Setup / Loading Screen
         composable("setup") {
-            // Automatically skip to dashboard if we already fetched data
             if (uiState is AppState.Success) {
                 navController.navigate("dashboard") {
                     popUpTo("setup") { inclusive = true }
                 }
             }
-            
             ServerSetupScreen(
                 uiState = uiState,
                 onConnect = { url -> viewModel.connectToServer(url) }
             )
         }
 
-        // 2. Main Dashboard (Course Content)
         composable("dashboard") {
             val state = uiState
             if (state is AppState.Success) {
@@ -75,38 +76,59 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
                         }
                     },
                     onModuleClick = { module ->
-                        if (module.type.lowercase() == "video") {
-                            // Construct full URL if it's relative, or use as is if absolute
-                            val fullUrl = if (module.url.startsWith("http")) module.url 
-                                          else "${viewModel.currentServerUrl}/${module.url}"
-                            
-                            val encodedUrl = URLEncoder.encode(fullUrl, StandardCharsets.UTF_8.toString())
-                            val encodedTitle = URLEncoder.encode(module.title, StandardCharsets.UTF_8.toString())
-                            
-                            navController.navigate("videoPlayer/$encodedUrl/$encodedTitle")
-                        } else {
-                            // In the future, route to a PDF viewer here!
-                            println("Unsupported module type for now: ${module.type}")
+                        val fullUrl = if (module.url.startsWith("http")) module.url 
+                                      else "${viewModel.currentServerUrl}/${module.url}"
+                        
+                        when (module.type.lowercase()) {
+                            "video" -> {
+                                val encodedUrl = URLEncoder.encode(fullUrl, StandardCharsets.UTF_8.toString())
+                                val encodedTitle = URLEncoder.encode(module.title, StandardCharsets.UTF_8.toString())
+                                navController.navigate("videoPlayer/$encodedUrl/$encodedTitle")
+                            }
+                            "qbank" -> {
+                                val encodedUrl = URLEncoder.encode(fullUrl, StandardCharsets.UTF_8.toString())
+                                navController.navigate("quiz/$encodedUrl")
+                            }
+                            "pdf" -> {
+                                // Lightweight approach: Let the OS handle the PDF
+                                val intent = Intent(Intent.ACTION_VIEW)
+                                intent.setDataAndType(Uri.parse(fullUrl), "application/pdf")
+                                intent.flags = Intent.FLAG_ACTIVITY_NO_HISTORY
+                                
+                                // Wrap in try-catch in case they don't have a PDF viewer installed
+                                try {
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    // You could add a Toast here stating "No PDF viewer found"
+                                }
+                            }
                         }
                     }
                 )
             } else {
-                // Failsafe: if state is lost, go back to setup
                 navController.navigate("setup")
             }
         }
 
-        // 3. Video Player Screen
         composable("videoPlayer/{url}/{title}") { backStackEntry ->
             val encodedUrl = backStackEntry.arguments?.getString("url") ?: ""
             val encodedTitle = backStackEntry.arguments?.getString("title") ?: "Video"
-            
             val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
             val title = URLDecoder.decode(encodedTitle, StandardCharsets.UTF_8.toString())
 
             VideoPlayerScreen(
                 videoUrl = url,
                 title = title,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("quiz/{url}") { backStackEntry ->
+            val encodedUrl = backStackEntry.arguments?.getString("url") ?: ""
+            val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
+
+            QuizScreen(
+                quizUrl = url,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
