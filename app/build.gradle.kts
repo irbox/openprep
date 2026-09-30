@@ -38,6 +38,7 @@ android {
 }
 
 dependencies {
+    // Core Android & Compose
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.2")
@@ -61,9 +62,6 @@ dependencies {
     // Data Saving
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
-    // Animations (Splash Screen)
-    implementation("com.airbnb.android:lottie-compose:6.3.0")
-
-    // NEW: Fast Image Loading for the Image Viewer
+    // Fast Image Loading for the Image Viewer
     implementation("io.coil-kt:coil-compose:2.5.0")
 }
