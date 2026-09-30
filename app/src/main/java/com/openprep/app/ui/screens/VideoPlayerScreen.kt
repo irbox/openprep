@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontWeight // FIXED IMPORT
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
@@ -47,7 +48,6 @@ fun VideoPlayerScreen(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    // PLAYBACK SPEED STATE
     val playbackSpeeds = listOf(1.0f, 1.25f, 1.5f, 2.0f)
     var currentSpeedIndex by remember { mutableIntStateOf(0) }
 
@@ -80,7 +80,6 @@ fun VideoPlayerScreen(
         }
     }
 
-    // Apply speed whenever it changes
     LaunchedEffect(currentSpeedIndex) {
         exoPlayer.playbackParameters = PlaybackParameters(playbackSpeeds[currentSpeedIndex])
     }
@@ -107,10 +106,7 @@ fun VideoPlayerScreen(
                     title = { Text(text = title) },
                     navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back") } },
                     actions = {
-                        // 1:1 FEATURE: SPEED TOGGLE IN TOP BAR
-                        TextButton(onClick = { 
-                            currentSpeedIndex = (currentSpeedIndex + 1) % playbackSpeeds.size 
-                        }) {
+                        TextButton(onClick = { currentSpeedIndex = (currentSpeedIndex + 1) % playbackSpeeds.size }) {
                             Icon(Icons.Default.Speed, contentDescription = "Speed", tint = Color.White, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("${playbackSpeeds[currentSpeedIndex]}x", color = Color.White, fontWeight = FontWeight.Bold)
@@ -136,7 +132,6 @@ fun VideoPlayerScreen(
                 }
             )
             
-            // If in Landscape, show a floating speed button so they don't lose the feature!
             if (isLandscape) {
                 Surface(
                     modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
