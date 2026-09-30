@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -18,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -43,10 +45,9 @@ fun VideoPlayerScreen(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    // 1:1 FEATURE: Keep screen awake while watching video
+    // 1:1 FEATURE: Keep screen awake while watching video & Allow auto-rotation
     DisposableEffect(Unit) {
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        // Allow auto-rotation based on sensor
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
         onDispose {
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -54,7 +55,7 @@ fun VideoPlayerScreen(
         }
     }
 
-    // 1:1 FEATURE: Immersive Fullscreen in Landscape
+    // 1:1 FEATURE: Immersive Fullscreen in Landscape (Hides clock, battery, and top bar)
     LaunchedEffect(isLandscape) {
         val window = activity?.window ?: return@LaunchedEffect
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
@@ -66,7 +67,7 @@ fun VideoPlayerScreen(
         }
     }
 
-    // Initialize ExoPlayer
+    // Initialize ExoPlayer (100% FOSS Media Player)
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(videoUrl))
@@ -112,23 +113,28 @@ fun VideoPlayerScreen(
             }
         }
     ) { paddingValues ->
+        
+        // Determine proper layout based on rotation
+        val videoModifier = if (isLandscape) {
+            Modifier.fillMaxSize().background(Color.Black)
+        } else {
+            Modifier.fillMaxSize().padding(paddingValues).background(Color.Black)
+        }
+
         // The actual Video Player UI
         AndroidView(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(if (isLandscape) PaddingValues(0.dp) else paddingValues)
-                .background(Color.Black),
+            modifier = videoModifier,
             factory = { ctx ->
                 PlayerView(ctx).apply {
                     player = exoPlayer
                     useController = true
-                    // 1:1 FEATURE: Match original aspect ratio handling
+                    // 1:1 FEATURE: Match original aspect ratio handling so video doesn't stretch weirdly
                     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                     layoutParams = FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
-                    // Enables standard speed and quality controls in the ExoPlayer settings gear
+                    // Enables standard speed and quality controls
                     setShowFastForwardButton(true)
                     setShowRewindButton(true)
                 }
