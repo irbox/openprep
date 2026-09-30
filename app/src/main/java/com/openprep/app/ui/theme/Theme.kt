@@ -5,7 +5,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.Color // <-- THIS IS THE MISSING LINE!
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.Font
@@ -30,46 +30,50 @@ val AppTypography = Typography().copy(
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryTeal,
-    secondary = PrimaryTealDark,
-    background = DarkBackground,
-    surface = DarkSurface,
+    primary = Color(0xFF00C6A0),
+    secondary = Color(0xFF009688),
+    background = Color(0xFF121212),
+    surface = Color(0xFF1E1E1E),
+    surfaceVariant = Color(0xFF2C2C2C), // Proper card color in dark mode
     onPrimary = Color.White,
-    onBackground = TextPrimaryDark,
-    onSurface = TextPrimaryDark,
-    error = ErrorRed
+    onBackground = Color.White,
+    onSurface = Color.White,
+    error = Color(0xFFCF6679)
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = PrimaryTeal,
-    secondary = PrimaryTealDark,
-    background = LightBackground,
-    surface = LightSurface,
+    primary = Color(0xFF00C6A0),
+    secondary = Color(0xFF009688),
+    background = Color(0xFFF4F7F9),
+    surface = Color(0xFFFFFFFF),
+    surfaceVariant = Color(0xFFE0E0E0),
     onPrimary = Color.White,
-    onBackground = TextPrimaryLight,
-    onSurface = TextPrimaryLight,
-    error = ErrorRed
+    onBackground = Color(0xFF1D1D1D),
+    onSurface = Color(0xFF1D1D1D),
+    error = Color(0xFFB00020)
 )
 
 @Composable
 fun OpenPrepTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themeMode: Int = 0, // 0=Sys, 1=Light, 2=Dark
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val isDark = when (themeMode) {
+        1 -> false
+        2 -> true
+        else -> isSystemInDarkTheme()
+    }
+    
+    val colorScheme = if (isDark) DarkColorScheme else LightColorScheme
     val view = LocalView.current
 
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDark
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = AppTypography,
-        content = content
-    )
+    MaterialTheme(colorScheme = colorScheme, typography = AppTypography, content = content)
 }
