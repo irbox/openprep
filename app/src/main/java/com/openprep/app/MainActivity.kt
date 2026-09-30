@@ -119,9 +119,11 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
                         val encodedUrl = URLEncoder.encode(fullUrl, StandardCharsets.UTF_8.toString())
                         val encodedTitle = URLEncoder.encode(module.title, StandardCharsets.UTF_8.toString())
                         
+                        // NEW: Log it to the timeline history!
                         coroutineScope.launch { 
                             progressRepo.markModuleCompleted(module.id)
                             progressRepo.saveLastPlayedModule(module.id)
+                            progressRepo.addHistoryItem(module.title, module.type)
                         }
 
                         when (module.type.lowercase()) {
