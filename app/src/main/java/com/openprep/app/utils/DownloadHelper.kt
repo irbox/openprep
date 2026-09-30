@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Environment
 import android.widget.Toast
+import java.io.File
 
 object DownloadHelper {
     fun downloadFile(context: Context, url: String, fileName: String, mimeType: String) {
@@ -13,7 +14,8 @@ object DownloadHelper {
                 .setTitle(fileName)
                 .setDescription("Downloading $fileName via OpenPrep")
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "OpenPrep/$fileName")
+                // Save to app-specific external directory (No permissions required!)
+                .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, fileName)
                 .setMimeType(mimeType)
                 .setAllowedOverMetered(true)
                 .setAllowedOverRoaming(true)
@@ -25,5 +27,10 @@ object DownloadHelper {
         } catch (e: Exception) {
             Toast.makeText(context, "Failed to download file.", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    fun getDownloadedFiles(context: Context): List<File> {
+        val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+        return dir?.listFiles()?.toList() ?: emptyList()
     }
 }
