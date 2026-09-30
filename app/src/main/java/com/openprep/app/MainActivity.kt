@@ -21,6 +21,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.openprep.app.data.ProgressRepository
 import com.openprep.app.ui.screens.MainAppScreen
+import com.openprep.app.ui.screens.PdfViewerScreen
 import com.openprep.app.ui.screens.QuizScreen
 import com.openprep.app.ui.screens.ServerSetupScreen
 import com.openprep.app.ui.screens.SplashScreen
@@ -101,10 +102,11 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
                                 navController.navigate("pdfViewer/$encodedUrl/$encodedTitle")
                             }
                         }
-                        }
                     }
                 )
-            } else { navController.navigate("setup") }
+            } else { 
+                navController.navigate("setup") 
+            }
         }
 
         composable("videoPlayer/{id}/{url}/{title}") { backStackEntry ->
@@ -117,18 +119,16 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
             val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
             QuizScreen(quizUrl = url, onNavigateBack = { navController.popBackStack() })
         }
-        
+
         composable("pdfViewer/{url}/{title}") { backStackEntry ->
             val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
             val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString())
             
-            // This is our new native PDF screen!
-            com.openprep.app.ui.screens.PdfViewerScreen(
+            PdfViewerScreen(
                 pdfUrl = url, 
                 title = title, 
                 onNavigateBack = { navController.popBackStack() }
             )
         }
-        
     }
 }
