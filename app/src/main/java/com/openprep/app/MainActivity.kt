@@ -109,6 +109,10 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
                         viewModel.resetSetup()
                         navController.navigate("setup") { popUpTo("dashboard") { inclusive = true } }
                     },
+                    // NEW: We force a re-connect which overrides the cache
+                    onSyncRequested = {
+                         viewModel.connectToServer(viewModel.currentServerUrl)
+                    },
                     onModuleClick = { module ->
                         if (module.type == "downloads") {
                             navController.navigate("downloads")
