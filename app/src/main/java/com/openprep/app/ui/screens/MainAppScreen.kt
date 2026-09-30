@@ -27,7 +27,15 @@ fun MainAppScreen(
                 NavigationBarItem(selected = selectedTab == 1, onClick = { selectedTab = 1 }, icon = { Icon(Icons.Default.Search, "Search") }, label = { Text("Search") })
                 NavigationBarItem(selected = selectedTab == 2, onClick = { selectedTab = 2 }, icon = { Icon(Icons.Default.MenuBook, "Books") }, label = { Text("Books") })
                 NavigationBarItem(selected = selectedTab == 3, onClick = { selectedTab = 3 }, icon = { Icon(Icons.Default.Chat, "Doubts") }, label = { Text("Doubts") })
-                NavigationBarItem(selected = selectedTab == 4, onClick = { selectedTab = 4 }, icon = { Icon(Icons.Default.Settings, "Settings") }, label = { Text("Settings") })
+                // ... Inside MainAppScreen.kt ...
+
+                // Update the 5th tab label
+                NavigationBarItem(
+                    selected = selectedTab == 4,
+                    onClick = { selectedTab = 4 },
+                    icon = { Icon(Icons.Default.Person, "Profile") },
+                    label = { Text("Profile") }
+                )
             }
         }
     ) { paddingValues ->
@@ -36,14 +44,14 @@ fun MainAppScreen(
                 0 -> DashboardScreen(manifest, progressRepo, currentServerUrl, onDisconnect, onModuleClick)
                 1 -> SearchScreen(manifest, progressRepo, currentServerUrl, onModuleClick)
                 2 -> {
-                    // Quick Library Filter (Replicates activity_books.xml)
                     val bookManifest = manifest.copy(subjects = manifest.subjects.map { subj -> 
                         subj.copy(modules = subj.modules.filter { it.type.lowercase() == "pdf" }) 
                     }.filter { it.modules.isNotEmpty() })
                     DashboardScreen(bookManifest, progressRepo, currentServerUrl, onDisconnect, onModuleClick)
                 }
                 3 -> SupportScreen(supportUrl = manifest.supportUrl)
-                4 -> SettingsScreen(progressRepo, onDisconnect)
+                // Swap SettingsScreen with ProfileScreen
+                4 -> ProfileScreen(progressRepo, onNavigateToDownloads = { onModuleClick(Module("", "", "downloads", "")) }, onDisconnect)
             }
         }
     }
