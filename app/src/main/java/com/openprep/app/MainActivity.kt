@@ -110,10 +110,16 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
                         }
 
                         when (module.type.lowercase()) {
-                            "video" -> navController.navigate("videoPlayer/${module.id}/$encodedUrl/$encodedTitle")
+                            "video" -> {
+                                coroutineScope.launch { progressRepo.markModuleCompleted(module.id) }
+                                navController.navigate("videoPlayer/${module.id}/$encodedUrl/$encodedTitle")
+                            }
                             "qbank" -> navController.navigate("quiz/${module.id}/$encodedUrl")
-                            "pdf" -> navController.navigate("pdfViewer/$encodedUrl/$encodedTitle")
-                            "article" -> navController.navigate("webView/$encodedUrl/$encodedTitle")
+                            "pdf", "article" -> {
+                                coroutineScope.launch { progressRepo.markModuleCompleted(module.id) }
+                                navController.navigate("pdfViewer/$encodedUrl/$encodedTitle")
+                            }
+                            "treasure" -> navController.navigate("treasures/$encodedUrl")
                         }
                     }
                 )
@@ -139,11 +145,15 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
             PdfViewerScreen(pdfUrl = url, title = title, onNavigateBack = { navController.popBackStack() })
         }
         
-        // NEW: Web/Article Viewer Route
         composable("webView/{url}/{title}") { backStackEntry ->
             val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
             val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString())
             WebViewScreen(url = url, title = title, onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable("treasures/{url}") { backStackEntry ->
+            val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
+            TreasuresScreen(url = url, onNavigateBack = { navController.popBackStack() })
         }
     }
 }
