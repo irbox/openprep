@@ -5,34 +5,84 @@ import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import com.openprep.app.model.HistoryItem
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 private val Context.dataStore by preferencesDataStore(name = "user_progress")
 
+// NEW: Data class for exporting/importing progress
+@Serializable
+data class ProgressBackup(
+    val scores: Map<String, Int> = emptyMap(),
+    val completed: List<String> = emptyList(),
+    val bookmarks: List<String> = emptyList(),
+    val history: String = "[]",
+    val streak: Int = 0,
+    val lastOpened: Long = 0L
+)
+
 class ProgressRepository(private val context: Context) {
     
     private val json = Json { ignoreUnknownKeys = true }
+
+    // --- IMPORT / EXPORT (BYOS Data Ownership) ---
+    suspend fun exportProgress(): String {
+        val prefs = context.dataStore.data.first()
+        val scoresMap = mutableMapOf<String, Int>()
+        val completedList = mutableListOf<String>()
+
+        prefs.asMap().forEach { (key, value) ->
+            val keyName = key.name
+            if (keyName.startsWith("score_") && value is Int) {
+                scoresMap[keyName.removePrefix("score_")] = value
+            } else if (keyName.startsWith("completed_") && value == true) {
+                completedList.add(keyName.removePrefix("completed_"))
+            }
+        }
+
+        val backup = ProgressBackup(
+            scores = scoresMap,
+            completed = completedList,
+            bookmarks = prefs[BOOKMARKS_KEY]?.toList() ?: emptyList(),
+            history = prefs[HISTORY_KEY] ?: "[]",
+            streak = prefs[CURRENT_STREAK] ?: 0,
+            lastOpened = prefs[LAST_OPENED_DAY] ?: 0L
+        )
+        return json.encodeToString(backup)
+    }
+
+    suspend fun importProgress(jsonString: String): Boolean {
+        return try {
+            val backup = json.decodeFromString<ProgressBackup>(jsonString)
+            context.dataStore.edit { prefs ->
+                backup.scores.forEach { (id, score) -> prefs[intPreferencesKey("score_$id")] = score }
+                backup.completed.forEach { id -> prefs[booleanPreferencesKey("completed_$id")] = true }
+                prefs[BOOKMARKS_KEY] = backup.bookmarks.toSet()
+                prefs[HISTORY_KEY] = backup.history
+                prefs[CURRENT_STREAK] = backup.streak
+                prefs[LAST_OPENED_DAY] = backup.lastOpened
+            }
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
 
     // --- LEARNING TIMELINE (HISTORY) ---
     private val HISTORY_KEY = stringPreferencesKey("learning_history")
 
     fun getHistory(): Flow<List<HistoryItem>> = context.dataStore.data.map { prefs ->
         val jsonString = prefs[HISTORY_KEY] ?: "[]"
-        try {
-            json.decodeFromString<List<HistoryItem>>(jsonString)
-        } catch (e: Exception) {
-            emptyList()
-        }
+        try { json.decodeFromString<List<HistoryItem>>(jsonString) } catch (e: Exception) { emptyList() }
     }
 
     suspend fun addHistoryItem(title: String, type: String) {
         context.dataStore.edit { prefs ->
             val jsonString = prefs[HISTORY_KEY] ?: "[]"
             val currentList = try { json.decodeFromString<List<HistoryItem>>(jsonString) } catch (e: Exception) { emptyList() }
-            
-            // Add new item to the top, and keep only the last 30 activities to save storage
             val newList = listOf(HistoryItem(title, type, System.currentTimeMillis())) + currentList
             prefs[HISTORY_KEY] = json.encodeToString(newList.take(30))
         }
