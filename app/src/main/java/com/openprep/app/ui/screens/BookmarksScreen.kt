@@ -7,7 +7,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.openprep.app.data.ProgressRepository
 import com.openprep.app.model.CourseManifest
@@ -21,6 +20,7 @@ fun BookmarksScreen(
     currentServerUrl: String,
     onModuleClick: (Module) -> Unit
 ) {
+    // Read the bookmarked IDs from local storage
     val bookmarkedIds by progressRepo.getBookmarkedModules().collectAsState(initial = emptySet())
 
     // Filter out all modules that are NOT bookmarked
@@ -31,7 +31,7 @@ fun BookmarksScreen(
     ) { paddingValues ->
         if (bookmarkedModules.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                Text("No bookmarks yet.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                Text("No bookmarks yet. Tap the heart on a module!", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
             }
         } else {
             LazyColumn(
@@ -39,6 +39,7 @@ fun BookmarksScreen(
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
                 items(bookmarkedModules) { module ->
+                    // Reusing the exact same card from the Dashboard!
                     ModuleCardItem(
                         module = module,
                         progressRepo = progressRepo,
