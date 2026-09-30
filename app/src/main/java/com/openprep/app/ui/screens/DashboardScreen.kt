@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,9 +30,15 @@ import com.openprep.app.R
 import com.openprep.app.data.ProgressRepository
 import com.openprep.app.model.CourseManifest
 import com.openprep.app.model.Module
-import com.openprep.app.ui.theme.*
 import com.openprep.app.utils.DownloadHelper
 import kotlinx.coroutines.launch
+
+// Hardcoding explicit colors to prevent import errors during compilation
+val GradientStart = Color(0xFF00E676)
+val GradientEnd = Color(0xFF1DE9B6)
+val IconBgLight = Color(0xFFE0F2F1)
+val SuccessGrn = Color(0xFF00C853)
+val TextSecLight = Color(0xFF6B7280)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +53,7 @@ fun DashboardScreen(
     val lastPlayedId by progressRepo.getLastPlayedModuleId().collectAsState(initial = null)
     val lastPlayedModule = manifest.subjects.flatMap { it.modules }.find { it.id == lastPlayedId }
     val userProfile by progressRepo.getUserProfile().collectAsState(initial = Pair("Learner", ""))
-    val currentStreak by progressRepo.getCurrentStreak().collectAsState(initial = 0) // <-- STREAK DATA
+    val currentStreak by progressRepo.getCurrentStreak().collectAsState(initial = 0) 
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -67,9 +74,8 @@ fun DashboardScreen(
                     }
                 }
                 
-                // GAMIFICATION: The Fire Streak Badge!
                 Surface(
-                    color = Color(0xFFFFF3E0), // Light Orange
+                    color = Color(0xFFFFF3E0),
                     shape = RoundedCornerShape(50),
                     modifier = Modifier.padding(end = 8.dp)
                 ) {
@@ -96,7 +102,7 @@ fun DashboardScreen(
                             Spacer(Modifier.height(8.dp))
                             Text(lastPlayedModule.title, style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             
-                            Button(onClick = { onModuleClick(lastPlayedModule) }, modifier = Modifier.padding(top = 16.dp), shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = PrimaryTealDark)) {
+                            Button(onClick = { onModuleClick(lastPlayedModule) }, modifier = Modifier.padding(top = 16.dp), shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFF009688))) {
                                 Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(4.dp))
                                 Text("Continue", fontWeight = FontWeight.Bold)
@@ -142,7 +148,6 @@ fun DashboardScreen(
     }
 }
 
-// Keeping the exact same ModuleCardItem from the previous batch!
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModuleCardItem(module: Module, progressRepo: ProgressRepository, currentServerUrl: String, onClick: () -> Unit) {
@@ -170,7 +175,7 @@ fun ModuleCardItem(module: Module, progressRepo: ProgressRepository, currentServ
                 else -> Icons.Default.Info
             }
             
-            Box(modifier = Modifier.size(52.dp).clip(RoundedCornerShape(12.dp)).background(IconBackgroundLight), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.size(52.dp).clip(RoundedCornerShape(12.dp)).background(IconBgLight), contentAlignment = Alignment.Center) {
                 if (iconContent != null) {
                     Icon(imageVector = iconContent, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                 } else {
@@ -184,12 +189,12 @@ fun ModuleCardItem(module: Module, progressRepo: ProgressRepository, currentServ
                 Text(text = module.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = module.type.uppercase(), style = MaterialTheme.typography.labelSmall, color = TextSecondaryLight)
+                    Text(text = module.type.uppercase(), style = MaterialTheme.typography.labelSmall, color = TextSecLight)
                     Spacer(Modifier.width(8.dp))
                     if (module.type.lowercase() == "video" && isCompleted) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = "Watched", tint = SuccessGreen, modifier = Modifier.size(14.dp))
+                        Icon(Icons.Default.CheckCircle, contentDescription = "Watched", tint = SuccessGrn, modifier = Modifier.size(14.dp))
                     } else if (module.type.lowercase() == "qbank" && score != null) {
-                        Text("Best: $score", fontWeight = FontWeight.Bold, color = SuccessGreen, style = MaterialTheme.typography.labelSmall)
+                        Text("Best: $score", fontWeight = FontWeight.Bold, color = SuccessGrn, style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
@@ -202,14 +207,14 @@ fun ModuleCardItem(module: Module, progressRepo: ProgressRepository, currentServ
                         val ext = when(module.type.lowercase()) { "pdf" -> ".pdf"; "image" -> ".jpg"; else -> ".mp4" }
                         val cleanName = module.title.replace(Regex("[^a-zA-Z0-9.-]"), "_") + ext
                         DownloadHelper.downloadFile(context, fullUrl, cleanName, mime)
-                    }) { Icon(Icons.Default.CloudDownload, contentDescription = "Download", tint = TextSecondaryLight) }
+                    }) { Icon(Icons.Default.CloudDownload, contentDescription = "Download", tint = TextSecLight) }
                 }
 
                 IconButton(onClick = { coroutineScope.launch { progressRepo.toggleBookmark(module.id) } }) {
                     Icon(
                         imageVector = if (isBookmarked) Icons.Default.Favorite else Icons.Outlined.FavoriteBorder,
                         contentDescription = "Bookmark",
-                        tint = if (isBookmarked) Color(0xFFE91E63) else TextSecondaryLight
+                        tint = if (isBookmarked) Color(0xFFE91E63) else TextSecLight
                     )
                 }
             }
