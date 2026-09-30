@@ -9,7 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
-import উদ্যোগে.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
@@ -26,8 +26,6 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import com.openprep.app.data.ProgressRepository
 import com.openprep.app.model.CourseManifest
-import com.openprep.app.ui.theme.IconBackgroundLight
-import com.openprep.app.ui.theme.PrimaryTeal
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -79,13 +77,12 @@ fun StatsScreen(
 
                 val videoProgress = if (totalVideos > 0) watchedVideos.toFloat() / totalVideos else 0f
                 
-                // Stats Cards
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text("Videos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(8.dp))
-                            LinearProgressIndicator(progress = videoProgress, modifier = Modifier.fillMaxWidth().height(6.dp), color = PrimaryTeal)
+                            LinearProgressIndicator(progress = videoProgress, modifier = Modifier.fillMaxWidth().height(6.dp), color = MaterialTheme.colorScheme.primary)
                             Spacer(Modifier.height(8.dp))
                             Text("$watchedVideos / $totalVideos", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f))
                         }
@@ -110,24 +107,22 @@ fun StatsScreen(
                 }
             }
 
-            // TIMELINE UI
             itemsIndexed(history) { index, item ->
                 val isLast = index == history.size - 1
                 val dateFormat = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
                 val dateStr = dateFormat.format(Date(item.timestamp))
 
                 Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                    // Vertical Line & Dot
                     Box(modifier = Modifier.width(40.dp), contentAlignment = Alignment.TopCenter) {
                         if (!isLast) {
+                            val lineColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                             Canvas(modifier = Modifier.fillMaxHeight().width(2.dp).padding(top = 24.dp)) {
-                                drawLine(color = PrimaryTeal.copy(alpha = 0.3f), start = Offset(size.width/2, 0f), end = Offset(size.width/2, size.height), strokeWidth = 4f)
+                                drawLine(color = lineColor, start = Offset(size.width/2, 0f), end = Offset(size.width/2, size.height), strokeWidth = 4f)
                             }
                         }
-                        Box(modifier = Modifier.padding(top = 16.dp).size(12.dp).clip(CircleShape).background(PrimaryTeal))
+                        Box(modifier = Modifier.padding(top = 16.dp).size(12.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
                     }
 
-                    // Content Card
                     Card(
                         modifier = Modifier.weight(1f).padding(bottom = 16.dp),
                         shape = RoundedCornerShape(12.dp),
@@ -140,8 +135,8 @@ fun StatsScreen(
                                 "qbank" -> Icons.Default.Create
                                 else -> Icons.Default.Info
                             }
-                            Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(IconBackgroundLight), contentAlignment = Alignment.Center) {
-                                Icon(imageVector = iconContent, contentDescription = null, tint = PrimaryTeal, modifier = Modifier.size(20.dp))
+                            Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
+                                Icon(imageVector = iconContent, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             }
                             Spacer(modifier = Modifier.width(16.dp))
                             Column {
