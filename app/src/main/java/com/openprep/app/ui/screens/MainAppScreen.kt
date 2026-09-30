@@ -20,13 +20,11 @@ fun MainAppScreen(
     currentServerUrl: String,
     onDisconnect: () -> Unit,
     onSyncRequested: () -> Unit,
-    onSubjectClick: (String) -> Unit, // NEW: Routes to nested Subject Screen
+    onSubjectClick: (String) -> Unit,
     onModuleClick: (Module) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
-    val activity = LocalContext.current as? Activity
 
-    // UX FIX: Hardware Back Button takes you to Home Tab instead of closing app
     BackHandler(enabled = selectedTab != 0) {
         selectedTab = 0
     }
@@ -43,10 +41,10 @@ fun MainAppScreen(
     ) { paddingValues ->
         Surface(modifier = Modifier.padding(paddingValues)) {
             when (selectedTab) {
-                0 -> DashboardScreen(manifest, progressRepo, currentServerUrl, onDisconnect, onModuleClick = onModuleClick, onSubjectClick = onSubjectClick)
+                0 -> DashboardScreen(manifest, progressRepo, currentServerUrl, onSubjectClick, onModuleClick)
                 1 -> {
                     val bookManifest = manifest.copy(subjects = manifest.subjects.map { subj -> subj.copy(modules = subj.modules.filter { it.type.lowercase() == "pdf" }) }.filter { it.modules.isNotEmpty() })
-                    DashboardScreen(bookManifest, progressRepo, currentServerUrl, onDisconnect, onModuleClick = onModuleClick, onSubjectClick = onSubjectClick)
+                    DashboardScreen(bookManifest, progressRepo, currentServerUrl, onSubjectClick, onModuleClick)
                 }
                 2 -> StatsScreen(manifest, progressRepo)
                 3 -> ProfileScreen(progressRepo, manifest.supportUrl, onNavigateToDownloads = { onModuleClick(Module("", "", "downloads", "")) }, onSyncRequested, onDisconnect)
