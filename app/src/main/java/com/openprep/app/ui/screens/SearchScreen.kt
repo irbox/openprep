@@ -1,0 +1,58 @@
+package com.openprep.app.ui.screens
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.openprep.app.data.ProgressRepository
+import com.openprep.app.model.CourseManifest
+import com.openprep.app.model.Module
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SearchScreen(
+    manifest: CourseManifest,
+    progressRepo: ProgressRepository,
+    currentServerUrl: String,
+    onModuleClick: (Module) -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    
+    // Flatten all modules into one list and filter based on search query
+    val allModules = manifest.subjects.flatMap { it.modules }
+    val filteredModules = if (searchQuery.isBlank()) {
+        emptyList()
+    } else {
+        allModules.filter { it.title.contains(searchQuery, ignoreCase = true) }
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            placeholder = { Text("Search for videos, notes, or quizzes...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+            singleLine = true
+        )
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            items(filteredModules) { module ->
+                ModuleCardItem(
+                    module = module,
+                    progressRepo = progressRepo,
+                    currentServerUrl = currentServerUrl,
+                    onClick = { onModuleClick(module) }
+                )
+            }
+        }
+    }
+}
