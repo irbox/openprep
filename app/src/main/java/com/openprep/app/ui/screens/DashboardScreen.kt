@@ -1,5 +1,6 @@
 package com.openprep.app.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,9 +16,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.openprep.app.R
 import com.openprep.app.data.ProgressRepository
 import com.openprep.app.model.CourseManifest
 import com.openprep.app.model.Module
@@ -35,54 +39,67 @@ fun DashboardScreen(
 ) {
     var selectedSubjectId by remember { mutableStateOf(manifest.subjects.firstOrNull()?.id) }
     
-    // Get Last Played Module
     val lastPlayedId by progressRepo.getLastPlayedModuleId().collectAsState(initial = null)
     val lastPlayedModule = manifest.subjects.flatMap { it.modules }.find { it.id == lastPlayedId }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Dashboard", fontWeight = FontWeight.Bold) },
+                title = { 
+                    // 1:1 UI CLONE: Using the original App Logo in the Header
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_one_prep_logo), 
+                            contentDescription = "Logo", 
+                            modifier = Modifier.height(28.dp),
+                            tint = Color.Unspecified
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(manifest.courseName, fontWeight = FontWeight.Bold)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(paddingValues)
-        ) {
-            // 1. Resume Learning Banner (Just like original OnePrep)
-            if (lastPlayedModule != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f))
-                        .padding(16.dp)
-                ) {
-                    Column {
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            
+            // Hero Banner Section
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+            ) {
+                // Background Graphic from original app
+                Image(
+                    painter = painterResource(id = R.drawable.ic_image_bg_prepare),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.matchParentSize(),
+                    alpha = 0.2f
+                )
+                
+                Column(modifier = Modifier.padding(20.dp)) {
+                    if (lastPlayedModule != null) {
                         Text("Resume Learning", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
                         Spacer(Modifier.height(8.dp))
-                        ModuleCardItem(module = lastPlayedModule, progressRepo = progressRepo, currentServerUrl = currentServerUrl) {
-                            onModuleClick(lastPlayedModule)
+                        Text(lastPlayedModule.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Button(
+                            onClick = { onModuleClick(lastPlayedModule) },
+                            modifier = Modifier.padding(top = 8.dp)
+                        ) {
+                            Text("Continue")
                         }
-                    }
-                }
-            } else {
-                // Default Welcome Banner
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp).clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)).padding(20.dp)
-                ) {
-                    Column {
-                        Text("Welcome to ${manifest.courseName}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    } else {
+                        Text("Ready to Learn?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.height(4.dp))
-                        Text("Select a subject below to start learning.", style = MaterialTheme.typography.bodyMedium)
+                        Text("Select a subject below.", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
 
-            // 2. Horizontal Subject Chips
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -103,7 +120,6 @@ fun DashboardScreen(
                 }
             }
 
-            // 3. The Vertical Module List
             val selectedSubject = manifest.subjects.find { it.id == selectedSubjectId }
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -120,7 +136,6 @@ fun DashboardScreen(
     }
 }
 
-// ModuleCardItem remains the exact same as previously written!
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModuleCardItem(
@@ -147,10 +162,11 @@ fun ModuleCardItem(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val icon = when(module.type.lowercase()) {
+            // Using precise icons
+            val iconContent = when(module.type.lowercase()) {
                 "video" -> Icons.Default.PlayArrow
                 "pdf" -> Icons.Default.Menu 
-                "qbank" -> Icons.Default.Create
+                "qbank" -> null // We will use the custom painter below
                 else -> Icons.Default.Info
             }
             
@@ -159,7 +175,12 @@ fun ModuleCardItem(
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                if (iconContent != null) {
+                    Icon(imageVector = iconContent, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                } else {
+                    // 1:1 UI CLONE: Using the original App QBank Icon
+                    Icon(painter = painterResource(id = R.drawable.ic_subject_mcq), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                }
             }
             
             Spacer(modifier = Modifier.width(16.dp))
