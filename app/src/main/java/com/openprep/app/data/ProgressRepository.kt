@@ -25,6 +25,10 @@ class ProgressRepository(private val context: Context) {
     suspend fun markModuleCompleted(moduleId: String) { context.dataStore.edit { it[booleanPreferencesKey("completed_$moduleId")] = true } }
     // --- NEW: FOR STATS ---
     fun getAllPreferences() = context.dataStore.data
+    // --- NEW: FOR SETTINGS ---
+    suspend fun clearAllProgress() {
+        context.dataStore.edit { it.clear() }
+    }
     // --- NEW: BOOKMARKING ---
     private val BOOKMARKS_KEY = stringSetPreferencesKey("bookmarked_modules")
 
