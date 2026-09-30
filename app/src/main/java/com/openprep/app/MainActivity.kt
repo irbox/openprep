@@ -110,7 +110,6 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
                         navController.navigate("setup") { popUpTo("dashboard") { inclusive = true } }
                     },
                     onModuleClick = { module ->
-                        // Catch the special Downloads route from ProfileScreen
                         if (module.type == "downloads") {
                             navController.navigate("downloads")
                             return@MainAppScreen
@@ -131,6 +130,7 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
                             "pdf" -> navController.navigate("pdfViewer/$encodedUrl/$encodedTitle")
                             "article" -> navController.navigate("webView/$encodedUrl/$encodedTitle")
                             "treasure" -> navController.navigate("treasures/$encodedUrl")
+                            "image" -> navController.navigate("imageViewer/$encodedUrl/$encodedTitle")
                         }
                     }
                 )
@@ -165,6 +165,12 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
         composable("treasures/{url}") { backStackEntry ->
             val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
             TreasuresScreen(url = url, onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable("imageViewer/{url}/{title}") { backStackEntry ->
+            val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
+            val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString())
+            ImageViewerScreen(imageUrl = url, title = title, onNavigateBack = { navController.popBackStack() })
         }
 
         composable("downloads") {
