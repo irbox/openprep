@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.openprep.app.model.QuizManifest
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +22,8 @@ sealed class QuizState {
         val selectedOption: Int?,
         val hasSubmittedAnswer: Boolean,
         val score: Int,
-        val markedForReview: Set<Int> // 1:1 FEATURE: Track flagged questions
+        val markedForReview: Set<Int>,
+        val timeRemainingSeconds: Int // NEW: Timer State
     ) : QuizState()
     data class Finished(val score: Int, val total: Int) : QuizState()
     data class Error(val message: String) : QuizState()
@@ -32,6 +35,7 @@ class QuizViewModel : ViewModel() {
 
     private val client = OkHttpClient()
     private val json = Json { ignoreUnknownKeys = true }
+    private var timerJob: Job? = null
 
     fun loadQuiz(url: String) {
         _uiState.value = QuizState.Loading
@@ -43,12 +47,37 @@ class QuizViewModel : ViewModel() {
                     val body = response.body?.string() ?: throw Exception("Empty body")
                     val quiz = json.decodeFromString<QuizManifest>(body)
                     
+                    val initialTime = quiz.durationMinutes * 60
+                    
                     _uiState.value = QuizState.Active(
                         manifest = quiz, currentQuestionIndex = 0, selectedOption = null, 
-                        hasSubmittedAnswer = false, score = 0, markedForReview = emptySet()
+                        hasSubmittedAnswer = false, score = 0, markedForReview = emptySet(),
+                        timeRemainingSeconds = initialTime
                     )
+                    startTimer()
                 }
             } catch (e: Exception) { _uiState.value = QuizState.Error(e.localizedMessage ?: "Unknown Error") }
+        }
+    }
+
+    private fun startTimer() {
+        timerJob?.cancel()
+        timerJob = viewModelScope.launch {
+            while (true) {
+                delay(1000)
+                val state = _uiState.value
+                if (state is QuizState.Active) {
+                    if (state.timeRemainingSeconds > 0) {
+                        _uiState.value = state.copy(timeRemainingSeconds = state.timeRemainingSeconds - 1)
+                    } else {
+                        // Time's up! Force finish the quiz
+                        _uiState.value = QuizState.Finished(state.score, state.manifest.questions.size)
+                        break
+                    }
+                } else {
+                    break
+                }
+            }
         }
     }
 
@@ -87,8 +116,14 @@ class QuizViewModel : ViewModel() {
                     selectedOption = null, hasSubmittedAnswer = false
                 )
             } else {
+                timerJob?.cancel() // Stop timer when finished manually
                 _uiState.value = QuizState.Finished(state.score, state.manifest.questions.size)
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        timerJob?.cancel()
     }
 }
