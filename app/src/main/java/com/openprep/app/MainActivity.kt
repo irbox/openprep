@@ -11,12 +11,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.openprep.app.data.ProgressRepository
 import com.openprep.app.ui.screens.DashboardScreen
 import com.openprep.app.ui.screens.QuizScreen
 import com.openprep.app.ui.screens.ServerSetupScreen
@@ -24,6 +27,7 @@ import com.openprep.app.ui.screens.VideoPlayerScreen
 import com.openprep.app.ui.theme.OpenPrepTheme
 import com.openprep.app.viewmodel.AppState
 import com.openprep.app.viewmodel.MainViewModel
+import kotlinx.coroutines.launch
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -33,10 +37,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             OpenPrepTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     OpenPrepApp()
                 }
             }
@@ -49,19 +50,18 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     val navController = rememberNavController()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    
+    // Initialize our lightweight DataStore repository
+    val progressRepo = remember { ProgressRepository(context) }
 
     NavHost(navController = navController, startDestination = "setup") {
         
         composable("setup") {
             if (uiState is AppState.Success) {
-                navController.navigate("dashboard") {
-                    popUpTo("setup") { inclusive = true }
-                }
+                navController.navigate("dashboard") { popUpTo("setup") { inclusive = true } }
             }
-            ServerSetupScreen(
-                uiState = uiState,
-                onConnect = { url -> viewModel.connectToServer(url) }
-            )
+            ServerSetupScreen(uiState = uiState, onConnect = { url -> viewModel.connectToServer(url) })
         }
 
         composable("dashboard") {
@@ -69,68 +69,50 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
             if (state is AppState.Success) {
                 DashboardScreen(
                     manifest = state.manifest,
+                    progressRepo = progressRepo,
                     onDisconnect = {
                         viewModel.resetSetup()
-                        navController.navigate("setup") {
-                            popUpTo("dashboard") { inclusive = true }
-                        }
+                        navController.navigate("setup") { popUpTo("dashboard") { inclusive = true } }
                     },
                     onModuleClick = { module ->
-                        val fullUrl = if (module.url.startsWith("http")) module.url 
-                                      else "${viewModel.currentServerUrl}/${module.url}"
+                        val fullUrl = if (module.url.startsWith("http")) module.url else "${viewModel.currentServerUrl}/${module.url}"
+                        val encodedUrl = URLEncoder.encode(fullUrl, StandardCharsets.UTF_8.toString())
+                        val encodedTitle = URLEncoder.encode(module.title, StandardCharsets.UTF_8.toString())
                         
                         when (module.type.lowercase()) {
                             "video" -> {
-                                val encodedUrl = URLEncoder.encode(fullUrl, StandardCharsets.UTF_8.toString())
-                                val encodedTitle = URLEncoder.encode(module.title, StandardCharsets.UTF_8.toString())
-                                navController.navigate("videoPlayer/$encodedUrl/$encodedTitle")
+                                // Mark video as complete immediately when opened
+                                coroutineScope.launch { progressRepo.markModuleCompleted(module.id) }
+                                navController.navigate("videoPlayer/${module.id}/$encodedUrl/$encodedTitle")
                             }
-                            "qbank" -> {
-                                val encodedUrl = URLEncoder.encode(fullUrl, StandardCharsets.UTF_8.toString())
-                                navController.navigate("quiz/$encodedUrl")
-                            }
+                            "qbank" -> navController.navigate("quiz/${module.id}/$encodedUrl")
                             "pdf" -> {
-                                // Lightweight approach: Let the OS handle the PDF
-                                val intent = Intent(Intent.ACTION_VIEW)
-                                intent.setDataAndType(Uri.parse(fullUrl), "application/pdf")
-                                intent.flags = Intent.FLAG_ACTIVITY_NO_HISTORY
-                                
-                                // Wrap in try-catch in case they don't have a PDF viewer installed
-                                try {
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    // You could add a Toast here stating "No PDF viewer found"
+                                coroutineScope.launch { progressRepo.markModuleCompleted(module.id) }
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(Uri.parse(fullUrl), "application/pdf")
+                                    flags = Intent.FLAG_ACTIVITY_NO_HISTORY
                                 }
+                                try { context.startActivity(intent) } catch (e: Exception) {}
                             }
                         }
                     }
                 )
-            } else {
-                navController.navigate("setup")
-            }
+            } else { navController.navigate("setup") }
         }
 
-        composable("videoPlayer/{url}/{title}") { backStackEntry ->
-            val encodedUrl = backStackEntry.arguments?.getString("url") ?: ""
-            val encodedTitle = backStackEntry.arguments?.getString("title") ?: "Video"
-            val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
-            val title = URLDecoder.decode(encodedTitle, StandardCharsets.UTF_8.toString())
-
-            VideoPlayerScreen(
-                videoUrl = url,
-                title = title,
-                onNavigateBack = { navController.popBackStack() }
-            )
+        composable("videoPlayer/{id}/{url}/{title}") { backStackEntry ->
+            val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
+            val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString())
+            VideoPlayerScreen(videoUrl = url, title = title, onNavigateBack = { navController.popBackStack() })
         }
 
-        composable("quiz/{url}") { backStackEntry ->
-            val encodedUrl = backStackEntry.arguments?.getString("url") ?: ""
-            val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.toString())
-
-            QuizScreen(
-                quizUrl = url,
-                onNavigateBack = { navController.popBackStack() }
-            )
+        composable("quiz/{id}/{url}") { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("id") ?: ""
+            val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
+            
+            // To save scores, update your QuizScreen to accept the repository and ID, 
+            // and call progressRepo.saveModuleScore(id, finalScore) when the quiz finishes!
+            QuizScreen(quizUrl = url, onNavigateBack = { navController.popBackStack() })
         }
     }
 }
