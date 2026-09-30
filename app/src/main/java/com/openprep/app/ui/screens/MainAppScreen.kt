@@ -16,6 +16,7 @@ fun MainAppScreen(
     progressRepo: ProgressRepository,
     currentServerUrl: String,
     onDisconnect: () -> Unit,
+    onSyncRequested: () -> Unit, // NEW
     onModuleClick: (Module) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -27,15 +28,7 @@ fun MainAppScreen(
                 NavigationBarItem(selected = selectedTab == 1, onClick = { selectedTab = 1 }, icon = { Icon(Icons.Default.Search, "Search") }, label = { Text("Search") })
                 NavigationBarItem(selected = selectedTab == 2, onClick = { selectedTab = 2 }, icon = { Icon(Icons.Default.MenuBook, "Books") }, label = { Text("Books") })
                 NavigationBarItem(selected = selectedTab == 3, onClick = { selectedTab = 3 }, icon = { Icon(Icons.Default.Chat, "Doubts") }, label = { Text("Doubts") })
-                // ... Inside MainAppScreen.kt ...
-
-                // Update the 5th tab label
-                NavigationBarItem(
-                    selected = selectedTab == 4,
-                    onClick = { selectedTab = 4 },
-                    icon = { Icon(Icons.Default.Person, "Profile") },
-                    label = { Text("Profile") }
-                )
+                NavigationBarItem(selected = selectedTab == 4, onClick = { selectedTab = 4 }, icon = { Icon(Icons.Default.Person, "Profile") }, label = { Text("Profile") })
             }
         }
     ) { paddingValues ->
@@ -50,8 +43,12 @@ fun MainAppScreen(
                     DashboardScreen(bookManifest, progressRepo, currentServerUrl, onDisconnect, onModuleClick)
                 }
                 3 -> SupportScreen(supportUrl = manifest.supportUrl)
-                // Swap SettingsScreen with ProfileScreen
-                4 -> ProfileScreen(progressRepo, onNavigateToDownloads = { onModuleClick(Module("", "", "downloads", "")) }, onDisconnect)
+                4 -> ProfileScreen(
+                    progressRepo = progressRepo, 
+                    onNavigateToDownloads = { onModuleClick(Module("", "", "downloads", "")) }, 
+                    onSyncRequested = onSyncRequested, // Pass it down
+                    onDisconnect = onDisconnect
+                )
             }
         }
     }
