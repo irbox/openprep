@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,14 +25,15 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
 
     val alphaAnim by animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(durationMillis = 800)
+        animationSpec = tween(durationMillis = 800),
+        label = "alpha"
     )
     val scaleAnim by animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0.5f,
-        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
+        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+        label = "scale"
     )
 
-    // Launch app immediately after a brief 1.2 second native animation
     LaunchedEffect(key1 = true) {
         startAnimation = true
         delay(1200)
@@ -50,7 +52,6 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
                 .alpha(alphaAnim)
                 .scale(scaleAnim)
         ) {
-            // Native, instant loading vector logo
             Icon(
                 painter = painterResource(id = R.drawable.ic_one_prep_logo),
                 contentDescription = "Logo",
