@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +22,7 @@ import kotlinx.coroutines.launch
 fun ProfileScreen(
     progressRepo: ProgressRepository,
     onNavigateToDownloads: () -> Unit,
+    onSyncRequested: () -> Unit, // NEW: Sync trigger
     onDisconnect: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -52,13 +54,12 @@ fun ProfileScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Profile & Settings") }) }
+        topBar = { TopAppBar(title = { Text("Profile & Settings", fontWeight = FontWeight.Bold) }) }
     ) { paddingValues ->
         Column(
             modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Profile Card
             Card(modifier = Modifier.fillMaxWidth()) {
                 Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
@@ -75,9 +76,8 @@ fun ProfileScreen(
                 }
             }
 
-            Text("Offline Content", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("App Management", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             
-            // Downloads Button
             Card(modifier = Modifier.fillMaxWidth(), onClick = onNavigateToDownloads) {
                 Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.CloudDownload, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -86,7 +86,20 @@ fun ProfileScreen(
                 }
             }
 
-            Text("Data Management", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            // NEW: Sync Content Button
+            Card(modifier = Modifier.fillMaxWidth(), onClick = {
+                onSyncRequested()
+                Toast.makeText(context, "Checking server for updates...", Toast.LENGTH_SHORT).show()
+            }) {
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Sync, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(16.dp))
+                    Column {
+                        Text("Sync Latest Content", fontWeight = FontWeight.Medium)
+                        Text("Check server for new modules", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f))
+                    }
+                }
+            }
             
             Card(modifier = Modifier.fillMaxWidth()) {
                 Row(
@@ -94,12 +107,12 @@ fun ProfileScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                         Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                         Spacer(Modifier.width(16.dp))
                         Column {
-                            Text("Clear All Progress", fontWeight = FontWeight.Bold)
-                            Text("Reset scores, history, and bookmarks", style = MaterialTheme.typography.bodySmall)
+                            Text("Clear Progress", fontWeight = FontWeight.Bold)
+                            Text("Reset scores & bookmarks", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                     Button(
