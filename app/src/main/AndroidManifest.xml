@@ -6,12 +6,13 @@
 
     <application
         android:allowBackup="true"
+        android:icon="@drawable/ic_one_prep_logo"
+        android:roundIcon="@drawable/ic_one_prep_logo"
         android:label="OpenPrep"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.NoTitleBar"
         android:usesCleartextTraffic="true">
         
-        <!-- Added supportsPictureInPicture and configChanges for seamless video rotation & PiP -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
