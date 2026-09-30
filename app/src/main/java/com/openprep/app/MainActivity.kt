@@ -23,6 +23,7 @@ import com.openprep.app.data.ProgressRepository
 import com.openprep.app.ui.screens.MainAppScreen
 import com.openprep.app.ui.screens.QuizScreen
 import com.openprep.app.ui.screens.ServerSetupScreen
+import com.openprep.app.ui.screens.SplashScreen
 import com.openprep.app.ui.screens.VideoPlayerScreen
 import com.openprep.app.ui.theme.OpenPrepTheme
 import com.openprep.app.viewmodel.AppState
@@ -52,12 +53,10 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     
-    // Initialize our lightweight DataStore repository
     val progressRepo = remember { ProgressRepository(context) }
 
-    NavHost(navController = navController, startDestination = "splash") { 
+    NavHost(navController = navController, startDestination = "splash") {
         
-        // --- SPLASH SCREEN ---
         composable("splash") {
             SplashScreen(
                 onSplashFinished = {
@@ -68,7 +67,6 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
             )
         }
 
-        
         composable("setup") {
             if (uiState is AppState.Success) {
                 navController.navigate("dashboard") { popUpTo("setup") { inclusive = true } }
@@ -119,9 +117,7 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
         }
 
         composable("quiz/{id}/{url}") { backStackEntry ->
-            // val id = backStackEntry.arguments?.getString("id") ?: "" // For saving scores later
             val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
-            
             QuizScreen(quizUrl = url, onNavigateBack = { navController.popBackStack() })
         }
     }
