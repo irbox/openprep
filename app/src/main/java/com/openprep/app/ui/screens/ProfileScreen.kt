@@ -1,5 +1,7 @@
 package com.openprep.app.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,6 +23,7 @@ import java.io.FileOutputStream
 @Composable
 fun ProfileScreen(
     progressRepo: ProgressRepository,
+    supportUrl: String?,
     onNavigateToDownloads: () -> Unit,
     onSyncRequested: () -> Unit,
     onDisconnect: () -> Unit
@@ -34,37 +37,14 @@ fun ProfileScreen(
     var examInput by remember { mutableStateOf("") }
 
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        uri?.let {
-            coroutineScope.launch {
-                try {
-                    val jsonString = progressRepo.exportProgress()
-                    context.contentResolver.openFileDescriptor(it, "w")?.use { pfd -> FileOutputStream(pfd.fileDescriptor).use { fos -> fos.write(jsonString.toByteArray()) } }
-                    Toast.makeText(context, "Progress Exported!", Toast.LENGTH_SHORT).show()
-                } catch (e: Exception) { Toast.makeText(context, "Export Failed", Toast.LENGTH_SHORT).show() }
-            }
-        }
+        uri?.let { coroutineScope.launch { try { val jsonString = progressRepo.exportProgress(); context.contentResolver.openFileDescriptor(it, "w")?.use { pfd -> FileOutputStream(pfd.fileDescriptor).use { fos -> fos.write(jsonString.toByteArray()) } }; Toast.makeText(context, "Progress Exported!", Toast.LENGTH_SHORT).show() } catch (e: Exception) { Toast.makeText(context, "Export Failed", Toast.LENGTH_SHORT).show() } } }
     }
-
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let {
-            coroutineScope.launch {
-                try {
-                    val inputStream = context.contentResolver.openInputStream(it)
-                    val jsonString = inputStream?.bufferedReader().use { reader -> reader?.readText() } ?: ""
-                    if (progressRepo.importProgress(jsonString)) Toast.makeText(context, "Progress Restored!", Toast.LENGTH_SHORT).show()
-                    else Toast.makeText(context, "Invalid Backup File", Toast.LENGTH_SHORT).show()
-                } catch (e: Exception) { Toast.makeText(context, "Import Failed", Toast.LENGTH_SHORT).show() }
-            }
-        }
+        uri?.let { coroutineScope.launch { try { val inputStream = context.contentResolver.openInputStream(it); val jsonString = inputStream?.bufferedReader().use { reader -> reader?.readText() } ?: ""; if (progressRepo.importProgress(jsonString)) Toast.makeText(context, "Progress Restored!", Toast.LENGTH_SHORT).show() else Toast.makeText(context, "Invalid Backup", Toast.LENGTH_SHORT).show() } catch (e: Exception) { Toast.makeText(context, "Import Failed", Toast.LENGTH_SHORT).show() } } }
     }
 
     if (showEditProfile) {
-        AlertDialog(
-            onDismissRequest = { showEditProfile = false },
-            title = { Text("Edit Profile") },
-            text = { Column { OutlinedTextField(value = nameInput, onValueChange = { nameInput = it }, label = { Text("Name") }); Spacer(Modifier.height(8.dp)); OutlinedTextField(value = examInput, onValueChange = { examInput = it }, label = { Text("Target Exam") }) } },
-            confirmButton = { Button(onClick = { coroutineScope.launch { progressRepo.saveUserProfile(nameInput, examInput) }; showEditProfile = false }) { Text("Save") } }
-        )
+        AlertDialog(onDismissRequest = { showEditProfile = false }, title = { Text("Edit Profile") }, text = { Column { OutlinedTextField(value = nameInput, onValueChange = { nameInput = it }, label = { Text("Name") }); Spacer(Modifier.height(8.dp)); OutlinedTextField(value = examInput, onValueChange = { examInput = it }, label = { Text("Target Exam") }) } }, confirmButton = { Button(onClick = { coroutineScope.launch { progressRepo.saveUserProfile(nameInput, examInput) }; showEditProfile = false }) { Text("Save") } })
     }
 
     Scaffold(topBar = { TopAppBar(title = { Text("Profile & Settings", fontWeight = FontWeight.Bold) }) }) { paddingValues ->
@@ -82,36 +62,26 @@ fun ProfileScreen(
             }
 
             Text("App Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-
             Card(modifier = Modifier.fillMaxWidth()) {
                 Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.DarkMode, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.DarkMode, contentDescription = null, tint = MaterialTheme.colorScheme.primary); Spacer(Modifier.width(16.dp)); Text("App Theme", fontWeight = FontWeight.Medium) }
+                    TextButton(onClick = { coroutineScope.launch { progressRepo.setThemeMode((currentTheme + 1) % 3) } }) { Text(when(currentTheme) { 1 -> "Light"; 2 -> "Dark"; else -> "System" }) }
+                }
+            }
+            
+            // REDUNDANCY FIX: Integrated Support/Doubts here
+            if (supportUrl != null) {
+                Card(modifier = Modifier.fillMaxWidth(), onClick = { try { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(supportUrl))) } catch (e: Exception) {} }) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.HelpCenter, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(16.dp))
-                        Text("App Theme", fontWeight = FontWeight.Medium)
-                    }
-                    // Theme Toggle (0=System, 1=Light, 2=Dark)
-                    TextButton(onClick = { coroutineScope.launch { progressRepo.setThemeMode((currentTheme + 1) % 3) } }) {
-                        Text(when(currentTheme) { 1 -> "Light"; 2 -> "Dark"; else -> "System" })
+                        Text("Ask Doubts / Community", fontWeight = FontWeight.Medium)
                     }
                 }
             }
 
-            Card(modifier = Modifier.fillMaxWidth(), onClick = onNavigateToDownloads) {
-                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.CloudDownload, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(16.dp))
-                    Text("Manage Offline Downloads", fontWeight = FontWeight.Medium)
-                }
-            }
-
-            Card(modifier = Modifier.fillMaxWidth(), onClick = { onSyncRequested(); Toast.makeText(context, "Checking server for updates...", Toast.LENGTH_SHORT).show() }) {
-                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Sync, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(16.dp))
-                    Column { Text("Sync Latest Content", fontWeight = FontWeight.Medium); Text("Check server for new modules", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f)) }
-                }
-            }
+            Card(modifier = Modifier.fillMaxWidth(), onClick = onNavigateToDownloads) { Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.CloudDownload, contentDescription = null, tint = MaterialTheme.colorScheme.primary); Spacer(Modifier.width(16.dp)); Text("Manage Offline Downloads", fontWeight = FontWeight.Medium) } }
+            Card(modifier = Modifier.fillMaxWidth(), onClick = { onSyncRequested(); Toast.makeText(context, "Checking updates...", Toast.LENGTH_SHORT).show() }) { Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Sync, contentDescription = null, tint = MaterialTheme.colorScheme.primary); Spacer(Modifier.width(16.dp)); Column { Text("Sync Content", fontWeight = FontWeight.Medium); Text("Check for new modules", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f)) } } }
 
             Text("Data Ownership (BYOS)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -120,7 +90,7 @@ fun ProfileScreen(
             }
 
             Spacer(Modifier.weight(1f))
-            OutlinedButton(onClick = onDisconnect, modifier = Modifier.fillMaxWidth().height(50.dp)) { Text("Disconnect from Server") }
+            OutlinedButton(onClick = onDisconnect, modifier = Modifier.fillMaxWidth().height(50.dp)) { Text("Disconnect from Server", color = MaterialTheme.colorScheme.error) }
         }
     }
 }
