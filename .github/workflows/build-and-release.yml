@@ -1,14 +1,12 @@
 name: Build and Release APK
 
-# This workflow triggers on pushes to the main branch,
-# when a new Tag (e.g., v1.0) is created, or manually.
+# We removed the "push" trigger so it stops spamming on every commit!
+# Now it only runs when you click "Run workflow" or publish a Release.
 on:
+  workflow_dispatch:
   push:
-    branches:
-      - main
     tags:
       - 'v*'
-  workflow_dispatch:
 
 jobs:
   build:
@@ -28,22 +26,18 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          # Using Gradle 8.2 to match our Android Gradle Plugin 8.2.0
           gradle-version: '8.2' 
 
       - name: Build Debug APK
-        # Since you are using the Web UI and don't have the gradlew script, 
-        # we call gradle directly.
         run: gradle assembleDebug
 
-      - name: Upload APK as Artifact (Available on Action Run page)
+      - name: Upload APK as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: OpenPrep-App-APK
           path: app/build/outputs/apk/debug/app-debug.apk
 
       - name: Publish to GitHub Releases
-        # Only run this step if a tag starting with 'v' was pushed (e.g. v1.0)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
