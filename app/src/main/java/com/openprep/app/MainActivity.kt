@@ -8,11 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -20,12 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.openprep.app.data.ProgressRepository
-import com.openprep.app.ui.screens.MainAppScreen
-import com.openprep.app.ui.screens.PdfViewerScreen
-import com.openprep.app.ui.screens.QuizScreen
-import com.openprep.app.ui.screens.ServerSetupScreen
-import com.openprep.app.ui.screens.SplashScreen
-import com.openprep.app.ui.screens.VideoPlayerScreen
+import com.openprep.app.ui.screens.*
 import com.openprep.app.ui.theme.OpenPrepTheme
 import com.openprep.app.viewmodel.AppState
 import com.openprep.app.viewmodel.MainViewModel
@@ -55,14 +46,29 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
     val coroutineScope = rememberCoroutineScope()
     
     val progressRepo = remember { ProgressRepository(context) }
+    
+    // Auto-Login Logic
+    val savedServerUrl by progressRepo.getServerUrl().collectAsState(initial = null)
+    var hasAttemptedAutoLogin by remember { mutableStateOf(false) }
+
+    // If we find a saved URL on startup, connect automatically!
+    LaunchedEffect(savedServerUrl) {
+        if (savedServerUrl != null && !hasAttemptedAutoLogin && uiState is AppState.Setup) {
+            hasAttemptedAutoLogin = true
+            viewModel.connectToServer(savedServerUrl!!)
+        }
+    }
 
     NavHost(navController = navController, startDestination = "splash") {
         
         composable("splash") {
             SplashScreen(
                 onSplashFinished = {
-                    navController.navigate("setup") {
-                        popUpTo("splash") { inclusive = true }
+                    // Check if we are already logged in via Auto-login
+                    if (uiState is AppState.Success) {
+                        navController.navigate("dashboard") { popUpTo("splash") { inclusive = true } }
+                    } else {
+                        navController.navigate("setup") { popUpTo("splash") { inclusive = true } }
                     }
                 }
             )
@@ -72,7 +78,13 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
             if (uiState is AppState.Success) {
                 navController.navigate("dashboard") { popUpTo("setup") { inclusive = true } }
             }
-            ServerSetupScreen(uiState = uiState, onConnect = { url -> viewModel.connectToServer(url) })
+            ServerSetupScreen(
+                uiState = uiState, 
+                onConnect = { url -> 
+                    coroutineScope.launch { progressRepo.saveServerUrl(url) } // Save for next time!
+                    viewModel.connectToServer(url) 
+                }
+            )
         }
 
         composable("dashboard") {
@@ -83,6 +95,8 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
                     progressRepo = progressRepo,
                     currentServerUrl = viewModel.currentServerUrl,
                     onDisconnect = {
+                        coroutineScope.launch { progressRepo.clearServerUrl() } // Wipe URL
+                        hasAttemptedAutoLogin = false
                         viewModel.resetSetup()
                         navController.navigate("setup") { popUpTo("dashboard") { inclusive = true } }
                     },
@@ -91,16 +105,16 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
                         val encodedUrl = URLEncoder.encode(fullUrl, StandardCharsets.UTF_8.toString())
                         val encodedTitle = URLEncoder.encode(module.title, StandardCharsets.UTF_8.toString())
                         
+                        // Save as Last Played
+                        coroutineScope.launch { 
+                            progressRepo.markModuleCompleted(module.id)
+                            progressRepo.saveLastPlayedModule(module.id)
+                        }
+
                         when (module.type.lowercase()) {
-                            "video" -> {
-                                coroutineScope.launch { progressRepo.markModuleCompleted(module.id) }
-                                navController.navigate("videoPlayer/${module.id}/$encodedUrl/$encodedTitle")
-                            }
+                            "video" -> navController.navigate("videoPlayer/${module.id}/$encodedUrl/$encodedTitle")
                             "qbank" -> navController.navigate("quiz/${module.id}/$encodedUrl")
-                            "pdf", "article" -> {
-                                coroutineScope.launch { progressRepo.markModuleCompleted(module.id) }
-                                navController.navigate("pdfViewer/$encodedUrl/$encodedTitle")
-                            }
+                            "pdf", "article" -> navController.navigate("pdfViewer/$encodedUrl/$encodedTitle")
                         }
                     }
                 )
@@ -123,12 +137,7 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
         composable("pdfViewer/{url}/{title}") { backStackEntry ->
             val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
             val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString())
-            
-            PdfViewerScreen(
-                pdfUrl = url, 
-                title = title, 
-                onNavigateBack = { navController.popBackStack() }
-            )
+            PdfViewerScreen(pdfUrl = url, title = title, onNavigateBack = { navController.popBackStack() })
         }
     }
 }
