@@ -16,59 +16,73 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.openprep.app.R
 
 @Composable
 fun SplashScreen(onSplashFinished: () -> Unit) {
     var startAnimation by remember { mutableStateOf(false) }
 
-    // FOSS Native Compose Animation
+    // Try to load original Lottie, fallback to Native Compose if not found
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.animation_splash))
+    
+    // Speeding up the Lottie animation by 1.5x
+    val progress by animateLottieCompositionAsState(
+        composition = composition,
+        speed = 1.5f 
+    )
+
     val alphaAnim by animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(durationMillis = 1000)
+        animationSpec = tween(durationMillis = 800)
     )
     val scaleAnim by animateFloatAsState(
-        targetValue = if (startAnimation) 1f else 0.5f,
-        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing)
+        targetValue = if (startAnimation) 1f else 0.8f,
+        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
     )
 
     LaunchedEffect(key1 = true) {
         startAnimation = true
-        delay(2000) // Keep splash on screen for 2 seconds
-        onSplashFinished()
+    }
+
+    // Launch app immediately when animation finishes (No artificial delays!)
+    LaunchedEffect(progress) {
+        if (progress == 1f || composition == null) {
+            onSplashFinished()
+        }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primary),
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .alpha(alphaAnim)
-                .scale(scaleAnim)
-        ) {
-            // Using a free Material FOSS icon representing education
-            Icon(
-                imageVector = Icons.Default.School,
-                contentDescription = "Logo",
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(100.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "OpenPrep",
-                fontSize = 40.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimary
-            )
-            Text(
-                text = "Bring Your Own Server",
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-            )
+        if (composition != null) {
+            LottieAnimation(composition = composition, progress = { progress })
+        } else {
+            // Fallback native animation
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.alpha(alphaAnim).scale(scaleAnim)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.School,
+                    contentDescription = "Logo",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(100.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "OpenPrep",
+                    fontSize = 40.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }
