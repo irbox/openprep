@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
             val progressRepo = remember { ProgressRepository(applicationContext) }
             val themeMode by progressRepo.getThemeMode().collectAsState(initial = 0)
 
-            OpenPrepTheme(themeMode = themeMode) { // <- DYNAMIC THEME APPLIED!
+            OpenPrepTheme(themeMode = themeMode) { 
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     OpenPrepApp(progressRepo)
                 }
@@ -51,136 +51,88 @@ fun OpenPrepApp(progressRepo: ProgressRepository, viewModel: MainViewModel = vie
     val savedServerUrl by progressRepo.getServerUrl().collectAsState(initial = null)
     val hasSeenOnboarding by progressRepo.hasSeenOnboarding().collectAsState(initial = false)
 
+    // Shared click handler to reduce code duplication
+    val onModuleClicked: (com.openprep.app.model.Module) -> Unit = { module ->
+        if (module.type == "downloads") {
+            navController.navigate("downloads")
+        } else {
+            val fullUrl = if (module.url.startsWith("http")) module.url else "${viewModel.currentServerUrl}/${module.url}"
+            val encodedUrl = URLEncoder.encode(fullUrl, StandardCharsets.UTF_8.toString())
+            val encodedTitle = URLEncoder.encode(module.title, StandardCharsets.UTF_8.toString())
+            
+            coroutineScope.launch { 
+                progressRepo.markModuleCompleted(module.id)
+                progressRepo.saveLastPlayedModule(module.id)
+                progressRepo.addHistoryItem(module.title, module.type)
+            }
+
+            when (module.type.lowercase()) {
+                "video" -> navController.navigate("videoPlayer/${module.id}/$encodedUrl/$encodedTitle")
+                "qbank" -> navController.navigate("quiz/${module.id}/$encodedUrl")
+                "pdf" -> navController.navigate("pdfViewer/$encodedUrl/$encodedTitle")
+                "article" -> navController.navigate("webView/$encodedUrl/$encodedTitle")
+                "treasure" -> navController.navigate("treasures/$encodedUrl")
+                "image" -> navController.navigate("imageViewer/$encodedUrl/$encodedTitle")
+            }
+        }
+    }
+
     NavHost(navController = navController, startDestination = "splash") {
         
         composable("splash") {
-            SplashScreen(
-                onSplashFinished = {
-                    if (!hasSeenOnboarding) {
-                        navController.navigate("intro") { popUpTo("splash") { inclusive = true } }
-                    } else if (!savedServerUrl.isNullOrBlank()) {
-                        viewModel.connectToServer(savedServerUrl!!)
-                    } else {
-                        navController.navigate("setup") { popUpTo("splash") { inclusive = true } }
-                    }
-                }
-            )
-
+            SplashScreen(onSplashFinished = {
+                if (!hasSeenOnboarding) navController.navigate("intro") { popUpTo("splash") { inclusive = true } }
+                else if (!savedServerUrl.isNullOrBlank()) viewModel.connectToServer(savedServerUrl!!)
+                else navController.navigate("setup") { popUpTo("splash") { inclusive = true } }
+            })
             LaunchedEffect(uiState) {
-                if (uiState is AppState.Success) {
-                    navController.navigate("dashboard") { popUpTo("splash") { inclusive = true } }
-                } else if (uiState is AppState.Error && hasSeenOnboarding) {
-                    navController.navigate("setup") { popUpTo("splash") { inclusive = true } }
-                }
+                if (uiState is AppState.Success) navController.navigate("dashboard") { popUpTo("splash") { inclusive = true } }
+                else if (uiState is AppState.Error && hasSeenOnboarding) navController.navigate("setup") { popUpTo("splash") { inclusive = true } }
             }
         }
 
         composable("intro") {
-            IntroScreen(
-                onFinishIntro = {
-                    coroutineScope.launch { progressRepo.setOnboardingSeen() }
-                    navController.navigate("setup") { popUpTo("intro") { inclusive = true } }
-                }
-            )
+            IntroScreen(onFinishIntro = { coroutineScope.launch { progressRepo.setOnboardingSeen() }; navController.navigate("setup") { popUpTo("intro") { inclusive = true } } })
         }
 
         composable("setup") {
-            LaunchedEffect(uiState) {
-                if (uiState is AppState.Success) {
-                    navController.navigate("dashboard") { popUpTo("setup") { inclusive = true } }
-                }
-            }
-
-            ServerSetupScreen(
-                uiState = uiState, 
-                onConnect = { url -> 
-                    coroutineScope.launch { progressRepo.saveServerUrl(url) }
-                    viewModel.connectToServer(url) 
-                }
-            )
+            LaunchedEffect(uiState) { if (uiState is AppState.Success) navController.navigate("dashboard") { popUpTo("setup") { inclusive = true } } }
+            ServerSetupScreen(uiState = uiState, onConnect = { url -> coroutineScope.launch { progressRepo.saveServerUrl(url) }; viewModel.connectToServer(url) })
         }
 
         composable("dashboard") {
             if (uiState is AppState.Success) {
                 MainAppScreen(
                     manifest = (uiState as AppState.Success).manifest,
-                    progressRepo = progressRepo,
-                    currentServerUrl = viewModel.currentServerUrl,
-                    onDisconnect = {
-                        coroutineScope.launch { progressRepo.clearServerUrl() }
-                        viewModel.resetSetup()
-                        navController.navigate("setup") { popUpTo("dashboard") { inclusive = true } }
-                    },
-                    onSyncRequested = {
-                         viewModel.connectToServer(viewModel.currentServerUrl)
-                    },
-                    onModuleClick = { module ->
-                        if (module.type == "downloads") {
-                            navController.navigate("downloads")
-                            return@MainAppScreen
-                        }
-
-                        val fullUrl = if (module.url.startsWith("http")) module.url else "${viewModel.currentServerUrl}/${module.url}"
-                        val encodedUrl = URLEncoder.encode(fullUrl, StandardCharsets.UTF_8.toString())
-                        val encodedTitle = URLEncoder.encode(module.title, StandardCharsets.UTF_8.toString())
-                        
-                        coroutineScope.launch { 
-                            progressRepo.markModuleCompleted(module.id)
-                            progressRepo.saveLastPlayedModule(module.id)
-                            progressRepo.addHistoryItem(module.title, module.type)
-                        }
-
-                        when (module.type.lowercase()) {
-                            "video" -> navController.navigate("videoPlayer/${module.id}/$encodedUrl/$encodedTitle")
-                            "qbank" -> navController.navigate("quiz/${module.id}/$encodedUrl")
-                            "pdf" -> navController.navigate("pdfViewer/$encodedUrl/$encodedTitle")
-                            "article" -> navController.navigate("webView/$encodedUrl/$encodedTitle")
-                            "treasure" -> navController.navigate("treasures/$encodedUrl")
-                            "image" -> navController.navigate("imageViewer/$encodedUrl/$encodedTitle")
-                        }
-                    }
+                    progressRepo = progressRepo, currentServerUrl = viewModel.currentServerUrl,
+                    onDisconnect = { coroutineScope.launch { progressRepo.clearServerUrl() }; viewModel.resetSetup(); navController.navigate("setup") { popUpTo("dashboard") { inclusive = true } } },
+                    onSyncRequested = { viewModel.connectToServer(viewModel.currentServerUrl) },
+                    onSubjectClick = { subjectId -> navController.navigate("subject/$subjectId") }, // Routes to Subject!
+                    onModuleClick = onModuleClicked
                 )
-            } else { 
-                LaunchedEffect(Unit) { navController.navigate("setup") }
+            } else { LaunchedEffect(Unit) { navController.navigate("setup") } }
+        }
+
+        // NEW: Nested Subject Screen
+        composable("subject/{subjectId}") { backStackEntry ->
+            val subjectId = backStackEntry.arguments?.getString("subjectId") ?: ""
+            if (uiState is AppState.Success) {
+                val subject = (uiState as AppState.Success).manifest.subjects.find { it.id == subjectId }
+                if (subject != null) {
+                    SubjectScreen(
+                        subject = subject, progressRepo = progressRepo, currentServerUrl = viewModel.currentServerUrl,
+                        onNavigateBack = { navController.popBackStack() }, onModuleClick = onModuleClicked
+                    )
+                }
             }
         }
 
-        composable("videoPlayer/{id}/{url}/{title}") { backStackEntry ->
-            val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
-            val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString())
-            VideoPlayerScreen(videoUrl = url, title = title, onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable("quiz/{id}/{url}") { backStackEntry ->
-            val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
-            QuizScreen(quizUrl = url, onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable("pdfViewer/{url}/{title}") { backStackEntry ->
-            val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
-            val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString())
-            PdfViewerScreen(pdfUrl = url, title = title, onNavigateBack = { navController.popBackStack() })
-        }
-        
-        composable("webView/{url}/{title}") { backStackEntry ->
-            val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
-            val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString())
-            WebViewScreen(url = url, title = title, onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable("treasures/{url}") { backStackEntry ->
-            val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
-            TreasuresScreen(url = url, onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable("imageViewer/{url}/{title}") { backStackEntry ->
-            val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
-            val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString())
-            ImageViewerScreen(imageUrl = url, title = title, onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable("downloads") {
-            DownloadsScreen(onNavigateBack = { navController.popBackStack() })
-        }
+        composable("videoPlayer/{id}/{url}/{title}") { backStackEntry -> val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString()); val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString()); VideoPlayerScreen(videoUrl = url, title = title, onNavigateBack = { navController.popBackStack() }) }
+        composable("quiz/{id}/{url}") { backStackEntry -> val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString()); QuizScreen(quizUrl = url, onNavigateBack = { navController.popBackStack() }) }
+        composable("pdfViewer/{url}/{title}") { backStackEntry -> val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString()); val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString()); PdfViewerScreen(pdfUrl = url, title = title, onNavigateBack = { navController.popBackStack() }) }
+        composable("webView/{url}/{title}") { backStackEntry -> val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString()); val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString()); WebViewScreen(url = url, title = title, onNavigateBack = { navController.popBackStack() }) }
+        composable("treasures/{url}") { backStackEntry -> val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString()); TreasuresScreen(url = url, onNavigateBack = { navController.popBackStack() }) }
+        composable("imageViewer/{url}/{title}") { backStackEntry -> val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString()); val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString()); ImageViewerScreen(imageUrl = url, title = title, onNavigateBack = { navController.popBackStack() }) }
+        composable("downloads") { DownloadsScreen(onNavigateBack = { navController.popBackStack() }) }
     }
 }
