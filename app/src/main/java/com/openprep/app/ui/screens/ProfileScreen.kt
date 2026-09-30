@@ -27,42 +27,33 @@ fun ProfileScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
-    
     val userProfile by progressRepo.getUserProfile().collectAsState(initial = Pair("Learner", "General Prep"))
+    val currentTheme by progressRepo.getThemeMode().collectAsState(initial = 0)
     var showEditProfile by remember { mutableStateOf(false) }
     var nameInput by remember { mutableStateOf("") }
     var examInput by remember { mutableStateOf("") }
 
-    // EXPORT LAUNCHER
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         uri?.let {
             coroutineScope.launch {
                 try {
                     val jsonString = progressRepo.exportProgress()
-                    context.contentResolver.openFileDescriptor(it, "w")?.use { pfd ->
-                        FileOutputStream(pfd.fileDescriptor).use { fos -> fos.write(jsonString.toByteArray()) }
-                    }
+                    context.contentResolver.openFileDescriptor(it, "w")?.use { pfd -> FileOutputStream(pfd.fileDescriptor).use { fos -> fos.write(jsonString.toByteArray()) } }
                     Toast.makeText(context, "Progress Exported!", Toast.LENGTH_SHORT).show()
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Export Failed", Toast.LENGTH_SHORT).show()
-                }
+                } catch (e: Exception) { Toast.makeText(context, "Export Failed", Toast.LENGTH_SHORT).show() }
             }
         }
     }
 
-    // IMPORT LAUNCHER
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
             coroutineScope.launch {
                 try {
                     val inputStream = context.contentResolver.openInputStream(it)
                     val jsonString = inputStream?.bufferedReader().use { reader -> reader?.readText() } ?: ""
-                    val success = progressRepo.importProgress(jsonString)
-                    if (success) Toast.makeText(context, "Progress Restored!", Toast.LENGTH_SHORT).show()
+                    if (progressRepo.importProgress(jsonString)) Toast.makeText(context, "Progress Restored!", Toast.LENGTH_SHORT).show()
                     else Toast.makeText(context, "Invalid Backup File", Toast.LENGTH_SHORT).show()
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Import Failed", Toast.LENGTH_SHORT).show()
-                }
+                } catch (e: Exception) { Toast.makeText(context, "Import Failed", Toast.LENGTH_SHORT).show() }
             }
         }
     }
@@ -71,19 +62,8 @@ fun ProfileScreen(
         AlertDialog(
             onDismissRequest = { showEditProfile = false },
             title = { Text("Edit Profile") },
-            text = {
-                Column {
-                    OutlinedTextField(value = nameInput, onValueChange = { nameInput = it }, label = { Text("Name") })
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(value = examInput, onValueChange = { examInput = it }, label = { Text("Target Exam") })
-                }
-            },
-            confirmButton = {
-                Button(onClick = {
-                    coroutineScope.launch { progressRepo.saveUserProfile(nameInput, examInput) }
-                    showEditProfile = false
-                }) { Text("Save") }
-            }
+            text = { Column { OutlinedTextField(value = nameInput, onValueChange = { nameInput = it }, label = { Text("Name") }); Spacer(Modifier.height(8.dp)); OutlinedTextField(value = examInput, onValueChange = { examInput = it }, label = { Text("Target Exam") }) } },
+            confirmButton = { Button(onClick = { coroutineScope.launch { progressRepo.saveUserProfile(nameInput, examInput) }; showEditProfile = false }) { Text("Save") } }
         )
     }
 
@@ -101,8 +81,22 @@ fun ProfileScreen(
                 }
             }
 
-            Text("App Management", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            
+            Text("App Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.DarkMode, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(16.dp))
+                        Text("App Theme", fontWeight = FontWeight.Medium)
+                    }
+                    // Theme Toggle (0=System, 1=Light, 2=Dark)
+                    TextButton(onClick = { coroutineScope.launch { progressRepo.setThemeMode((currentTheme + 1) % 3) } }) {
+                        Text(when(currentTheme) { 1 -> "Light"; 2 -> "Dark"; else -> "System" })
+                    }
+                }
+            }
+
             Card(modifier = Modifier.fillMaxWidth(), onClick = onNavigateToDownloads) {
                 Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.CloudDownload, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -115,29 +109,18 @@ fun ProfileScreen(
                 Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Sync, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(16.dp))
-                    Column {
-                        Text("Sync Latest Content", fontWeight = FontWeight.Medium)
-                        Text("Check server for new modules", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f))
-                    }
+                    Column { Text("Sync Latest Content", fontWeight = FontWeight.Medium); Text("Check server for new modules", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f)) }
                 }
             }
 
             Text("Data Ownership (BYOS)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(modifier = Modifier.weight(1f), onClick = { exportLauncher.launch("openprep_backup.json") }) {
-                    Icon(Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Export")
-                }
-                Button(modifier = Modifier.weight(1f), onClick = { importLauncher.launch(arrayOf("application/json", "*/*")) }) {
-                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Import")
-                }
+                Button(modifier = Modifier.weight(1f), onClick = { exportLauncher.launch("openprep_backup.json") }) { Icon(Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Export") }
+                Button(modifier = Modifier.weight(1f), onClick = { importLauncher.launch(arrayOf("application/json", "*/*")) }) { Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Import") }
             }
 
             Spacer(Modifier.weight(1f))
-
-            OutlinedButton(onClick = onDisconnect, modifier = Modifier.fillMaxWidth().height(50.dp)) {
-                Text("Disconnect from Server")
-            }
+            OutlinedButton(onClick = onDisconnect, modifier = Modifier.fillMaxWidth().height(50.dp)) { Text("Disconnect from Server") }
         }
     }
 }
