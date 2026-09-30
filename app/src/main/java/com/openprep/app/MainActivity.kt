@@ -96,14 +96,11 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
                                 navController.navigate("videoPlayer/${module.id}/$encodedUrl/$encodedTitle")
                             }
                             "qbank" -> navController.navigate("quiz/${module.id}/$encodedUrl")
-                            "pdf" -> {
+                            "pdf", "article" -> {
                                 coroutineScope.launch { progressRepo.markModuleCompleted(module.id) }
-                                val intent = Intent(Intent.ACTION_VIEW).apply {
-                                    setDataAndType(Uri.parse(fullUrl), "application/pdf")
-                                    flags = Intent.FLAG_ACTIVITY_NO_HISTORY
-                                }
-                                try { context.startActivity(intent) } catch (e: Exception) {}
+                                navController.navigate("pdfViewer/$encodedUrl/$encodedTitle")
                             }
+                        }
                         }
                     }
                 )
