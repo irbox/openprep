@@ -3,7 +3,7 @@ package com.openprep.app.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.items // FIXED IMPORT
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -26,7 +26,6 @@ fun SubjectScreen(
     onNavigateBack: () -> Unit,
     onModuleClick: (Module) -> Unit
 ) {
-    // Filters: "All", "video", "pdf", "qbank", "treasure"
     var selectedFilter by remember { mutableStateOf("All") }
     val filters = listOf("All", "Videos", "Notes", "QBank", "Flashcards")
 
@@ -52,7 +51,6 @@ fun SubjectScreen(
         }
     ) { paddingValues ->
         Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            // Content Type Filter Chips
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -64,25 +62,18 @@ fun SubjectScreen(
                         selected = isSelected,
                         onClick = { selectedFilter = filter },
                         label = { Text(filter, fontWeight = if(isSelected) FontWeight.Bold else FontWeight.Normal) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = Color.White
-                        ),
+                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.primary, selectedLabelColor = Color.White),
                         shape = RoundedCornerShape(50)
                     )
                 }
             }
 
-            // Modules List
             if (filteredModules.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                    Text("No modules found for this filter.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                    Text("No modules found.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                    contentPadding = PaddingValues(bottom = 24.dp)
-                ) {
+                LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
                     items(filteredModules) { module ->
                         ModuleCardItem(module, progressRepo, currentServerUrl) { onModuleClick(module) }
                     }
