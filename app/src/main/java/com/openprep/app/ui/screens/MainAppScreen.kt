@@ -40,13 +40,12 @@ fun MainAppScreen(
                 NavigationBarItem(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
-                    icon = { Icon(Icons.Default.DateRange, contentDescription = "Stats") }, // Using DateRange as a placeholder for a chart icon
+                    icon = { Icon(Icons.Default.DateRange, contentDescription = "Stats") },
                     label = { Text("Stats") }
                 )
             }
         }
     ) { paddingValues ->
-        // Render the correct screen based on the selected tab
         Surface(modifier = Modifier.padding(paddingValues)) {
             when (selectedTab) {
                 0 -> DashboardScreen(manifest, progressRepo, currentServerUrl, onDisconnect, onModuleClick)
