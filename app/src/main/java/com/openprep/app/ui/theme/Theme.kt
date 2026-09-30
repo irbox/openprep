@@ -34,7 +34,7 @@ private val DarkColorScheme = darkColorScheme(
     secondary = Color(0xFF009688),
     background = Color(0xFF121212),
     surface = Color(0xFF1E1E1E),
-    surfaceVariant = Color(0xFF2C2C2C), // Proper card color in dark mode
+    surfaceVariant = Color(0xFF2C2C2C),
     onPrimary = Color.White,
     onBackground = Color.White,
     onSurface = Color.White,
@@ -71,7 +71,9 @@ fun OpenPrepTheme(
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.background.toArgb()
+            window.navigationBarColor = colorScheme.background.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDark
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !isDark
         }
     }
 
