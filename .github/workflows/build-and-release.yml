@@ -1,7 +1,5 @@
 name: Build and Release APK
 
-# We removed the "push" trigger so it stops spamming on every commit!
-# Now it only runs when you click "Run workflow" or publish a Release.
 on:
   workflow_dispatch:
   push:
