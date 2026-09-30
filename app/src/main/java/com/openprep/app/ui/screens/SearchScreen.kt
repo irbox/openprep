@@ -2,7 +2,7 @@ package com.openprep.app.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.items // FIXED IMPORT
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -22,14 +22,8 @@ fun SearchScreen(
     onModuleClick: (Module) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    
-    // Flatten all modules into one list and filter based on search query
     val allModules = manifest.subjects.flatMap { it.modules }
-    val filteredModules = if (searchQuery.isBlank()) {
-        emptyList()
-    } else {
-        allModules.filter { it.title.contains(searchQuery, ignoreCase = true) }
-    }
+    val filteredModules = if (searchQuery.isBlank()) emptyList() else allModules.filter { it.title.contains(searchQuery, true) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         OutlinedTextField(
@@ -41,17 +35,9 @@ fun SearchScreen(
             singleLine = true
         )
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(bottom = 16.dp)
-        ) {
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), contentPadding = PaddingValues(bottom = 16.dp)) {
             items(filteredModules) { module ->
-                ModuleCardItem(
-                    module = module,
-                    progressRepo = progressRepo,
-                    currentServerUrl = currentServerUrl,
-                    onClick = { onModuleClick(module) }
-                )
+                ModuleCardItem(module = module, progressRepo = progressRepo, currentServerUrl = currentServerUrl, onClick = { onModuleClick(module) })
             }
         }
     }
