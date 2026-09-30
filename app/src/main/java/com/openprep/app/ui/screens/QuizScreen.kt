@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip // <-- THE MISSING IMPORT FIXED!
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -30,7 +31,6 @@ fun QuizScreen(quizUrl: String, onNavigateBack: () -> Unit, viewModel: QuizViewM
     LaunchedEffect(quizUrl) { viewModel.loadQuiz(quizUrl) }
     val uiState by viewModel.uiState.collectAsState()
 
-    // OPTION ELIMINATION STATE (Stores indexes of crossed-out options)
     var eliminatedOptions by remember { mutableStateOf(setOf<Int>()) }
 
     Scaffold(
@@ -83,7 +83,6 @@ fun QuizScreen(quizUrl: String, onNavigateBack: () -> Unit, viewModel: QuizViewM
                 is QuizState.Active -> {
                     val question = state.manifest.questions[state.currentQuestionIndex]
                     
-                    // Reset eliminated options when question changes
                     LaunchedEffect(state.currentQuestionIndex) { eliminatedOptions = emptySet() }
 
                     Column {
@@ -95,7 +94,6 @@ fun QuizScreen(quizUrl: String, onNavigateBack: () -> Unit, viewModel: QuizViewM
                         }
                         Spacer(Modifier.height(16.dp))
                         
-                        // CLINICAL IMAGE SUPPORT
                         if (!question.imageUrl.isNullOrBlank()) {
                             AsyncImage(
                                 model = question.imageUrl,
