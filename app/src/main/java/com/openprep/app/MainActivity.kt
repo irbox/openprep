@@ -117,5 +117,18 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
             val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
             QuizScreen(quizUrl = url, onNavigateBack = { navController.popBackStack() })
         }
+        
+        composable("pdfViewer/{url}/{title}") { backStackEntry ->
+            val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
+            val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString())
+            
+            // This is our new native PDF screen!
+            com.openprep.app.ui.screens.PdfViewerScreen(
+                pdfUrl = url, 
+                title = title, 
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
     }
 }
