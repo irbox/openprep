@@ -47,6 +47,8 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.navigation:navigation-compose:2.7.6")
+    // Lottie for the Splash Screen animation
+    implementation("com.airbnb.android:lottie-compose:6.3.0")
 
     // Video Player (ExoPlayer / Media3)
     implementation("androidx.media3:media3-exoplayer:1.2.1")
