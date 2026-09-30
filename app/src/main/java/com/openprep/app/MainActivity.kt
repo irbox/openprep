@@ -55,7 +55,19 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
     // Initialize our lightweight DataStore repository
     val progressRepo = remember { ProgressRepository(context) }
 
-    NavHost(navController = navController, startDestination = "setup") {
+    NavHost(navController = navController, startDestination = "splash") { 
+        
+        // --- SPLASH SCREEN ---
+        composable("splash") {
+            SplashScreen(
+                onSplashFinished = {
+                    navController.navigate("setup") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
+            )
+        }
+
         
         composable("setup") {
             if (uiState is AppState.Success) {
