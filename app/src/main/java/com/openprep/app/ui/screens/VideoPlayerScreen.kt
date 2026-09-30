@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.text.font.FontWeight // FIXED IMPORT
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
@@ -37,11 +37,7 @@ import androidx.media3.ui.PlayerView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VideoPlayerScreen(
-    videoUrl: String,
-    title: String,
-    onNavigateBack: () -> Unit
-) {
+fun VideoPlayerScreen(videoUrl: String, title: String, onNavigateBack: () -> Unit) {
     val context = LocalContext.current
     val activity = context as? Activity
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -51,12 +47,19 @@ fun VideoPlayerScreen(
     val playbackSpeeds = listOf(1.0f, 1.25f, 1.5f, 2.0f)
     var currentSpeedIndex by remember { mutableIntStateOf(0) }
 
+    // FIXED: Properly restore system UI when leaving the video screen!
     DisposableEffect(Unit) {
-        activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        val window = activity?.window
+        window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
+        
         onDispose {
-            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            // Bring back the status bar and navigation bar globally!
+            if (window != null) {
+                WindowCompat.getInsetsController(window, window.decorView).show(WindowInsetsCompat.Type.systemBars())
+            }
         }
     }
 
@@ -80,9 +83,7 @@ fun VideoPlayerScreen(
         }
     }
 
-    LaunchedEffect(currentSpeedIndex) {
-        exoPlayer.playbackParameters = PlaybackParameters(playbackSpeeds[currentSpeedIndex])
-    }
+    LaunchedEffect(currentSpeedIndex) { exoPlayer.playbackParameters = PlaybackParameters(playbackSpeeds[currentSpeedIndex]) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -104,7 +105,7 @@ fun VideoPlayerScreen(
             if (!isLandscape) {
                 TopAppBar(
                     title = { Text(text = title) },
-                    navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back") } },
+                    navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.Default.ArrowBack, "Back") } },
                     actions = {
                         TextButton(onClick = { currentSpeedIndex = (currentSpeedIndex + 1) % playbackSpeeds.size }) {
                             Icon(Icons.Default.Speed, contentDescription = "Speed", tint = Color.White, modifier = Modifier.size(18.dp))
@@ -135,8 +136,7 @@ fun VideoPlayerScreen(
             if (isLandscape) {
                 Surface(
                     modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
-                    color = Color.Black.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(50)
+                    color = Color.Black.copy(alpha = 0.5f), shape = RoundedCornerShape(50)
                 ) {
                     TextButton(onClick = { currentSpeedIndex = (currentSpeedIndex + 1) % playbackSpeeds.size }) {
                         Icon(Icons.Default.Speed, contentDescription = "Speed", tint = Color.White, modifier = Modifier.size(18.dp))
