@@ -2,7 +2,7 @@ package com.openprep.app.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.items // FIXED IMPORT
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,10 +20,7 @@ fun BookmarksScreen(
     currentServerUrl: String,
     onModuleClick: (Module) -> Unit
 ) {
-    // Read the bookmarked IDs from local storage
     val bookmarkedIds by progressRepo.getBookmarkedModules().collectAsState(initial = emptySet())
-
-    // Filter out all modules that are NOT bookmarked
     val bookmarkedModules = manifest.subjects.flatMap { it.modules }.filter { bookmarkedIds.contains(it.id) }
 
     Scaffold(
@@ -34,18 +31,9 @@ fun BookmarksScreen(
                 Text("No bookmarks yet. Tap the heart on a module!", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(paddingValues).padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(bottom = 16.dp)
-            ) {
+            LazyColumn(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(horizontal = 16.dp), contentPadding = PaddingValues(bottom = 16.dp)) {
                 items(bookmarkedModules) { module ->
-                    // Reusing the exact same card from the Dashboard!
-                    ModuleCardItem(
-                        module = module,
-                        progressRepo = progressRepo,
-                        currentServerUrl = currentServerUrl,
-                        onClick = { onModuleClick(module) }
-                    )
+                    ModuleCardItem(module = module, progressRepo = progressRepo, currentServerUrl = currentServerUrl, onClick = { onModuleClick(module) })
                 }
             }
         }
