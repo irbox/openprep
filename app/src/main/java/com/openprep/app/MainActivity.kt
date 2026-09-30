@@ -70,6 +70,7 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
                 DashboardScreen(
                     manifest = state.manifest,
                     progressRepo = progressRepo,
+                    currentServerUrl = viewModel.currentServerUrl,
                     onDisconnect = {
                         viewModel.resetSetup()
                         navController.navigate("setup") { popUpTo("dashboard") { inclusive = true } }
