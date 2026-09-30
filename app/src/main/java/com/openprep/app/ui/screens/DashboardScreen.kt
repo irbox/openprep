@@ -2,6 +2,7 @@ package com.openprep.app.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -20,6 +21,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.openprep.app.R
 import com.openprep.app.data.ProgressRepository
@@ -38,7 +40,6 @@ fun DashboardScreen(
     onModuleClick: (Module) -> Unit
 ) {
     var selectedSubjectId by remember { mutableStateOf(manifest.subjects.firstOrNull()?.id) }
-    
     val lastPlayedId by progressRepo.getLastPlayedModuleId().collectAsState(initial = null)
     val lastPlayedModule = manifest.subjects.flatMap { it.modules }.find { it.id == lastPlayedId }
 
@@ -46,88 +47,82 @@ fun DashboardScreen(
         topBar = {
             TopAppBar(
                 title = { 
-                    // 1:1 UI CLONE: Using the original App Logo in the Header
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_one_prep_logo), 
-                            contentDescription = "Logo", 
-                            modifier = Modifier.height(28.dp),
-                            tint = Color.Unspecified
-                        )
-                        Spacer(Modifier.width(8.dp))
+                        Icon(painter = painterResource(id = R.drawable.ic_one_prep_logo), contentDescription = "Logo", modifier = Modifier.size(32.dp), tint = Color.Unspecified)
+                        Spacer(Modifier.width(12.dp))
                         Text(manifest.courseName, fontWeight = FontWeight.Bold)
                     }
+                },
+                actions = {
+                    IconButton(onClick = onDisconnect) { Icon(Icons.Default.ExitToApp, contentDescription = "Log Out") }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { paddingValues ->
-        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            
-            // Hero Banner Section
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-            ) {
-                // Background Graphic from original app
-                Image(
-                    painter = painterResource(id = R.drawable.ic_image_bg_prepare),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.matchParentSize(),
-                    alpha = 0.2f
-                )
-                
-                Column(modifier = Modifier.padding(20.dp)) {
-                    if (lastPlayedModule != null) {
-                        Text("Resume Learning", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
-                        Spacer(Modifier.height(8.dp))
-                        Text(lastPlayedModule.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Button(
-                            onClick = { onModuleClick(lastPlayedModule) },
-                            modifier = Modifier.padding(top = 8.dp)
-                        ) {
-                            Text("Continue")
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(paddingValues),
+            contentPadding = PaddingValues(bottom = 24.dp)
+        ) {
+            // 1:1 HERO BANNER
+            item {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp).clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                ) {
+                    Image(painter = painterResource(id = R.drawable.ic_image_bg_prepare), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize(), alpha = 0.3f)
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        if (lastPlayedModule != null) {
+                            Text("Resume Learning", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                            Spacer(Modifier.height(8.dp))
+                            Text(lastPlayedModule.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Button(onClick = { onModuleClick(lastPlayedModule) }, modifier = Modifier.padding(top = 12.dp), shape = RoundedCornerShape(8.dp)) {
+                                Text("Continue")
+                            }
+                        } else {
+                            Text("Ready to Learn?", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.height(4.dp))
+                            Text("Select a subject below to begin.", style = MaterialTheme.typography.bodyMedium)
                         }
-                    } else {
-                        Text("Ready to Learn?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.height(4.dp))
-                        Text("Select a subject below.", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
 
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(manifest.subjects) { subject ->
-                    val isSelected = selectedSubjectId == subject.id
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { selectedSubjectId = subject.id },
-                        label = { Text(subject.title, fontWeight = if(isSelected) FontWeight.Bold else FontWeight.Normal) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(50)
-                    )
+            // 1:1 SUBJECT CARDS
+            item {
+                Text("Subjects", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(manifest.subjects) { subject ->
+                        val isSelected = selectedSubjectId == subject.id
+                        Card(
+                            modifier = Modifier.width(140.dp).height(80.dp).clickable { selectedSubjectId = subject.id },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Box(modifier = Modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.BottomStart) {
+                                Text(
+                                    text = subject.title, 
+                                    style = MaterialTheme.typography.labelLarge, 
+                                    fontWeight = FontWeight.Bold, 
+                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
                 }
+                Spacer(Modifier.height(16.dp))
             }
 
+            // 1:1 MODULE LIST
             val selectedSubject = manifest.subjects.find { it.id == selectedSubjectId }
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                if (selectedSubject != null) {
-                    items(selectedSubject.modules) { module ->
+            if (selectedSubject != null) {
+                items(selectedSubject.modules) { module ->
+                    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                         ModuleCardItem(module, progressRepo, currentServerUrl) { onModuleClick(module) }
                     }
                 }
@@ -138,12 +133,7 @@ fun DashboardScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ModuleCardItem(
-    module: Module, 
-    progressRepo: ProgressRepository, 
-    currentServerUrl: String,
-    onClick: () -> Unit
-) {
+fun ModuleCardItem(module: Module, progressRepo: ProgressRepository, currentServerUrl: String, onClick: () -> Unit) {
     val isCompleted by progressRepo.isModuleCompleted(module.id).collectAsState(false)
     val score by progressRepo.getModuleScore(module.id).collectAsState(null)
     val bookmarkedModules by progressRepo.getBookmarkedModules().collectAsState(emptySet())
@@ -153,32 +143,25 @@ fun ModuleCardItem(
     val context = LocalContext.current
 
     ElevatedCard(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Using precise icons
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             val iconContent = when(module.type.lowercase()) {
                 "video" -> Icons.Default.PlayArrow
-                "pdf" -> Icons.Default.Menu 
-                "qbank" -> null // We will use the custom painter below
+                "pdf" -> Icons.Default.Description 
+                "qbank" -> null 
+                "treasure" -> Icons.Default.Style
                 else -> Icons.Default.Info
             }
             
-            Box(
-                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
                 if (iconContent != null) {
                     Icon(imageVector = iconContent, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 } else {
-                    // 1:1 UI CLONE: Using the original App QBank Icon
                     Icon(painter = painterResource(id = R.drawable.ic_subject_mcq), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
                 }
             }
@@ -186,19 +169,15 @@ fun ModuleCardItem(
             Spacer(modifier = Modifier.width(16.dp))
             
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = module.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                Text(text = module.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = module.type.uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
+                    Text(text = module.type.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                     Spacer(Modifier.width(8.dp))
                     if (module.type.lowercase() == "video" && isCompleted) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = "Watched", tint = Color(0xFF00C853), modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.CheckCircle, contentDescription = "Watched", tint = Color(0xFF00C853), modifier = Modifier.size(14.dp))
                     } else if (module.type.lowercase() == "qbank" && score != null) {
-                        Text("Best: $score", fontWeight = FontWeight.Bold, color = Color(0xFF00C853), style = MaterialTheme.typography.labelMedium)
+                        Text("Best: $score", fontWeight = FontWeight.Bold, color = Color(0xFF00C853), style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
@@ -211,9 +190,7 @@ fun ModuleCardItem(
                         val ext = if (module.type.lowercase() == "pdf") ".pdf" else ".mp4"
                         val cleanName = module.title.replace(Regex("[^a-zA-Z0-9.-]"), "_") + ext
                         com.openprep.app.utils.DownloadHelper.downloadFile(context, fullUrl, cleanName, mime)
-                    }) {
-                        Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Download")
-                    }
+                    }) { Icon(Icons.Default.CloudDownload, contentDescription = "Download", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
 
                 IconButton(onClick = { coroutineScope.launch { progressRepo.toggleBookmark(module.id) } }) {
