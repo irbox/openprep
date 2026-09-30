@@ -34,44 +34,55 @@ fun DashboardScreen(
     onModuleClick: (Module) -> Unit
 ) {
     var selectedSubjectId by remember { mutableStateOf(manifest.subjects.firstOrNull()?.id) }
+    
+    // Get Last Played Module
+    val lastPlayedId by progressRepo.getLastPlayedModuleId().collectAsState(initial = null)
+    val lastPlayedModule = manifest.subjects.flatMap { it.modules }.find { it.id == lastPlayedId }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Dashboard", fontWeight = FontWeight.Bold) },
-                actions = {
-                    IconButton(onClick = onDisconnect) {
-                        Icon(Icons.Default.ExitToApp, contentDescription = "Log Out")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier = Modifier.fillMaxSize().padding(paddingValues)
         ) {
-            // Hero Section (Replicating original UI welcome banner)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    .padding(20.dp)
-            ) {
-                Column {
-                    Text("Welcome to ${manifest.courseName}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.height(4.dp))
-                    Text("Select a subject below to start learning.", style = MaterialTheme.typography.bodyMedium)
+            // 1. Resume Learning Banner (Just like original OnePrep)
+            if (lastPlayedModule != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f))
+                        .padding(16.dp)
+                ) {
+                    Column {
+                        Text("Resume Learning", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                        Spacer(Modifier.height(8.dp))
+                        ModuleCardItem(module = lastPlayedModule, progressRepo = progressRepo, currentServerUrl = currentServerUrl) {
+                            onModuleClick(lastPlayedModule)
+                        }
+                    }
+                }
+            } else {
+                // Default Welcome Banner
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp).clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)).padding(20.dp)
+                ) {
+                    Column {
+                        Text("Welcome to ${manifest.courseName}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.height(4.dp))
+                        Text("Select a subject below to start learning.", style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
             }
 
-            // Horizontal Subject Selector (Chips)
+            // 2. Horizontal Subject Chips
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -87,14 +98,12 @@ fun DashboardScreen(
                             selectedContainerColor = MaterialTheme.colorScheme.primary,
                             selectedLabelColor = Color.White
                         ),
-                        shape = RoundedCornerShape(50) // Pill shape like original
+                        shape = RoundedCornerShape(50)
                     )
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
-
-            // Vertical Module List
+            // 3. The Vertical Module List
             val selectedSubject = manifest.subjects.find { it.id == selectedSubjectId }
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -111,6 +120,7 @@ fun DashboardScreen(
     }
 }
 
+// ModuleCardItem remains the exact same as previously written!
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModuleCardItem(
@@ -127,7 +137,6 @@ fun ModuleCardItem(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // ElevatedCard provides the beautiful shadow seen in the original app
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
@@ -138,19 +147,15 @@ fun ModuleCardItem(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // FOSS Material Icons replacing proprietary drawables
             val icon = when(module.type.lowercase()) {
                 "video" -> Icons.Default.PlayArrow
-                "pdf" -> Icons.Default.Menu // Represents document/notes
+                "pdf" -> Icons.Default.Menu 
                 "qbank" -> Icons.Default.Create
                 else -> Icons.Default.Info
             }
             
-            // Icon container with colored background
             Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
@@ -177,7 +182,6 @@ fun ModuleCardItem(
                 }
             }
 
-            // FOSS Material Action Icons
             Row {
                 if (module.type.lowercase() in listOf("video", "pdf")) {
                     IconButton(onClick = {
@@ -185,7 +189,7 @@ fun ModuleCardItem(
                         val mime = if (module.type.lowercase() == "pdf") "application/pdf" else "video/mp4"
                         val ext = if (module.type.lowercase() == "pdf") ".pdf" else ".mp4"
                         val cleanName = module.title.replace(Regex("[^a-zA-Z0-9.-]"), "_") + ext
-                        DownloadHelper.downloadFile(context, fullUrl, cleanName, mime)
+                        com.openprep.app.utils.DownloadHelper.downloadFile(context, fullUrl, cleanName, mime)
                     }) {
                         Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Download")
                     }
