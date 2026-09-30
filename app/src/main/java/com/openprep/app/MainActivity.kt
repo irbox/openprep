@@ -64,10 +64,13 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
             ServerSetupScreen(uiState = uiState, onConnect = { url -> viewModel.connectToServer(url) })
         }
 
+// ... ("dashboard" route)
+
         composable("dashboard") {
             val state = uiState
             if (state is AppState.Success) {
-                DashboardScreen(
+                // WE SWAPPED THIS TO MainAppScreen
+                MainAppScreen(
                     manifest = state.manifest,
                     progressRepo = progressRepo,
                     currentServerUrl = viewModel.currentServerUrl,
@@ -82,7 +85,6 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
                         
                         when (module.type.lowercase()) {
                             "video" -> {
-                                // Mark video as complete immediately when opened
                                 coroutineScope.launch { progressRepo.markModuleCompleted(module.id) }
                                 navController.navigate("videoPlayer/${module.id}/$encodedUrl/$encodedTitle")
                             }
@@ -100,6 +102,8 @@ fun OpenPrepApp(viewModel: MainViewModel = viewModel()) {
                 )
             } else { navController.navigate("setup") }
         }
+
+// ... (dashboard end)
 
         composable("videoPlayer/{id}/{url}/{title}") { backStackEntry ->
             val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
