@@ -7,13 +7,14 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
@@ -27,6 +28,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
@@ -45,7 +47,10 @@ fun VideoPlayerScreen(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    // 1:1 FEATURE: Keep screen awake while watching video & Allow auto-rotation
+    // PLAYBACK SPEED STATE
+    val playbackSpeeds = listOf(1.0f, 1.25f, 1.5f, 2.0f)
+    var currentSpeedIndex by remember { mutableIntStateOf(0) }
+
     DisposableEffect(Unit) {
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
@@ -55,7 +60,6 @@ fun VideoPlayerScreen(
         }
     }
 
-    // 1:1 FEATURE: Immersive Fullscreen in Landscape (Hides clock, battery, and top bar)
     LaunchedEffect(isLandscape) {
         val window = activity?.window ?: return@LaunchedEffect
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
@@ -67,7 +71,6 @@ fun VideoPlayerScreen(
         }
     }
 
-    // Initialize ExoPlayer (100% FOSS Media Player)
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(videoUrl))
@@ -77,7 +80,11 @@ fun VideoPlayerScreen(
         }
     }
 
-    // Manage Player Lifecycle safely
+    // Apply speed whenever it changes
+    LaunchedEffect(currentSpeedIndex) {
+        exoPlayer.playbackParameters = PlaybackParameters(playbackSpeeds[currentSpeedIndex])
+    }
+
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -95,50 +102,54 @@ fun VideoPlayerScreen(
 
     Scaffold(
         topBar = {
-            // Hide TopBar completely if the phone is rotated to landscape
             if (!isLandscape) {
                 TopAppBar(
                     title = { Text(text = title) },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back") } },
+                    actions = {
+                        // 1:1 FEATURE: SPEED TOGGLE IN TOP BAR
+                        TextButton(onClick = { 
+                            currentSpeedIndex = (currentSpeedIndex + 1) % playbackSpeeds.size 
+                        }) {
+                            Icon(Icons.Default.Speed, contentDescription = "Speed", tint = Color.White, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("${playbackSpeeds[currentSpeedIndex]}x", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Black,
-                        titleContentColor = Color.White,
-                        navigationIconContentColor = Color.White
-                    )
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black, titleContentColor = Color.White, navigationIconContentColor = Color.White)
                 )
             }
         }
     ) { paddingValues ->
-        
-        // Determine proper layout based on rotation
-        val videoModifier = if (isLandscape) {
-            Modifier.fillMaxSize().background(Color.Black)
-        } else {
-            Modifier.fillMaxSize().padding(paddingValues).background(Color.Black)
-        }
-
-        // The actual Video Player UI
-        AndroidView(
-            modifier = videoModifier,
-            factory = { ctx ->
-                PlayerView(ctx).apply {
-                    player = exoPlayer
-                    useController = true
-                    // 1:1 FEATURE: Match original aspect ratio handling so video doesn't stretch weirdly
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-                    layoutParams = FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-                    // Enables standard speed and quality controls
-                    setShowFastForwardButton(true)
-                    setShowRewindButton(true)
+        Box(modifier = Modifier.fillMaxSize().padding(if (isLandscape) PaddingValues(0.dp) else paddingValues).background(Color.Black)) {
+            AndroidView(
+                modifier = Modifier.fillMaxSize(),
+                factory = { ctx ->
+                    PlayerView(ctx).apply {
+                        player = exoPlayer
+                        useController = true
+                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                        setShowFastForwardButton(true)
+                        setShowRewindButton(true)
+                    }
+                }
+            )
+            
+            // If in Landscape, show a floating speed button so they don't lose the feature!
+            if (isLandscape) {
+                Surface(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
+                    color = Color.Black.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(50)
+                ) {
+                    TextButton(onClick = { currentSpeedIndex = (currentSpeedIndex + 1) % playbackSpeeds.size }) {
+                        Icon(Icons.Default.Speed, contentDescription = "Speed", tint = Color.White, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("${playbackSpeeds[currentSpeedIndex]}x", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
-        )
+        }
     }
 }
