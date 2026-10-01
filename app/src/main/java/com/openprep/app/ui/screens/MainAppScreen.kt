@@ -20,11 +20,13 @@ fun MainAppScreen(
     currentServerUrl: String,
     onDisconnect: () -> Unit,
     onSyncRequested: () -> Unit,
+    onSearchClick: () -> Unit, // FIXED: Added missing Search command
     onSubjectClick: (String) -> Unit,
     onModuleClick: (Module) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
 
+    // UX FIX: Hardware Back Button takes you to Home Tab instead of closing app
     BackHandler(enabled = selectedTab != 0) {
         selectedTab = 0
     }
@@ -41,10 +43,11 @@ fun MainAppScreen(
     ) { paddingValues ->
         Surface(modifier = Modifier.padding(paddingValues)) {
             when (selectedTab) {
-                0 -> DashboardScreen(manifest, progressRepo, currentServerUrl, onSubjectClick, onModuleClick)
+                // FIXED: Passing onSearchClick properly to Dashboard
+                0 -> DashboardScreen(manifest, progressRepo, currentServerUrl, onSearchClick, onSubjectClick, onModuleClick)
                 1 -> {
                     val bookManifest = manifest.copy(subjects = manifest.subjects.map { subj -> subj.copy(modules = subj.modules.filter { it.type.lowercase() == "pdf" }) }.filter { it.modules.isNotEmpty() })
-                    DashboardScreen(bookManifest, progressRepo, currentServerUrl, onSubjectClick, onModuleClick)
+                    DashboardScreen(bookManifest, progressRepo, currentServerUrl, onSearchClick, onSubjectClick, onModuleClick)
                 }
                 2 -> StatsScreen(manifest, progressRepo)
                 3 -> ProfileScreen(progressRepo, manifest.supportUrl, onNavigateToDownloads = { onModuleClick(Module("", "", "downloads", "")) }, onSyncRequested, onDisconnect)
