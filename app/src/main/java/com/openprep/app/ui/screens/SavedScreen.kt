@@ -1,5 +1,6 @@
 package com.openprep.app.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,7 +22,7 @@ import com.openprep.app.model.Module
 import com.openprep.app.utils.DownloadHelper
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SavedScreen(
     manifest: CourseManifest,
@@ -31,16 +32,12 @@ fun SavedScreen(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    
-    // Tab State
+
     val tabs = listOf("Bookmarks", "Downloads")
     val pagerState = rememberPagerState(pageCount = { tabs.size })
 
-    // Bookmarks Data
     val bookmarkedIds by progressRepo.getBookmarkedModules().collectAsState(initial = emptySet())
     val bookmarkedModules = manifest.subjects.flatMap { it.modules }.filter { bookmarkedIds.contains(it.id) }
-
-    // Downloads Data
     var downloadedFiles by remember { mutableStateOf(DownloadHelper.getDownloadedFiles(context)) }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -48,7 +45,7 @@ fun SavedScreen(
             title = { Text("My Library", fontWeight = FontWeight.Bold) },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
         )
-        
+
         TabRow(
             selectedTabIndex = pagerState.currentPage,
             containerColor = MaterialTheme.colorScheme.background,
@@ -65,7 +62,7 @@ fun SavedScreen(
 
         HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
             when (page) {
-                0 -> { // BOOKMARKS TAB
+                0 -> {
                     if (bookmarkedModules.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text("No bookmarks yet.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
@@ -78,7 +75,7 @@ fun SavedScreen(
                         }
                     }
                 }
-                1 -> { // DOWNLOADS TAB
+                1 -> {
                     if (downloadedFiles.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text("No downloaded files.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
@@ -98,11 +95,11 @@ fun SavedScreen(
                                         Spacer(Modifier.width(16.dp))
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(file.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-                                            Text("${file.length() / 1024 / 1024} MB", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f))
+                                            Text("${file.length() / 1024 / 1024} MB", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                                         }
                                         IconButton(onClick = {
                                             file.delete()
-                                            downloadedFiles = DownloadHelper.getDownloadedFiles(context) // Refresh UI instantly
+                                            downloadedFiles = DownloadHelper.getDownloadedFiles(context)
                                         }) {
                                             Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
                                         }
