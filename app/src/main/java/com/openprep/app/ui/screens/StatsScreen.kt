@@ -69,7 +69,9 @@ fun StatsScreen(
                     }
                 }
 
-                // CEREBELLUM / MARROW STYLE: Performance Banner
+                // VARIABLE IN SCOPE: Calculated before usage
+                val percentile = if (totalQuizzes > 0) ((totalScore.toFloat() / (totalQuizzes * 5).coerceAtLeast(1)) * 100).coerceIn(10f, 99f) else 78f
+
                 val rankGradient = Brush.linearGradient(listOf(Color(0xFF1E3A8A), Color(0xFF3B82F6)))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -83,7 +85,6 @@ fun StatsScreen(
                                 Text("ESTIMATED PERCENTILE", color = Color.White.copy(alpha = 0.8f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
                             }
                             Spacer(Modifier.height(8.dp))
-                            val percentile = if (totalQuizzes > 0) ((totalScore.toFloat() / (totalQuizzes * 5).coerceAtLeast(1)) * 100).coerceIn(10f, 99f) else 78f
                             Text("${percentile.toInt()}th Percentile", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = Color.White)
                             Spacer(Modifier.height(4.dp))
                             Text("Pacing: 1:18 Mins / Question (Competitive Velocity)", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
@@ -93,7 +94,6 @@ fun StatsScreen(
 
                 Spacer(Modifier.height(16.dp))
 
-                // QUICK METRIC ROW
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
                         Column(modifier = Modifier.padding(14.dp)) {
@@ -115,7 +115,6 @@ fun StatsScreen(
                 Text("Subject-Wise Strength Analysis", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
 
-                // SUBJECT ACCURACY METERS
                 manifest.subjects.forEach { subject ->
                     Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), shape = RoundedCornerShape(12.dp)) {
                         Column(modifier = Modifier.padding(14.dp)) {
@@ -142,7 +141,6 @@ fun StatsScreen(
                 }
             }
 
-            // TIMELINE LIST
             itemsIndexed(history) { index, item ->
                 val isLast = index == history.size - 1
                 val dateFormat = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
