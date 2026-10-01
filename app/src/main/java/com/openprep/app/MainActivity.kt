@@ -56,13 +56,6 @@ fun OpenPrepApp(progressRepo: ProgressRepository, viewModel: MainViewModel = vie
     val savedServerUrl by progressRepo.getServerUrl().collectAsState(initial = null)
     val hasSeenOnboarding by progressRepo.hasSeenOnboarding().collectAsState(initial = false)
 
-    // Determine when to show the bottom bar
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-    val bottomBarRoutes = listOf("dashboard", "bookmarks", "stats", "profile")
-    val showBottomBar = currentRoute in bottomBarRoutes
-
-    // Centralized Navigation Logic
     val onModuleClicked: (com.openprep.app.model.Module) -> Unit = { module ->
         if (module.type == "downloads") {
             navController.navigate("downloads")
@@ -89,34 +82,7 @@ fun OpenPrepApp(progressRepo: ProgressRepository, viewModel: MainViewModel = vie
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        bottomBar = {
-            if (showBottomBar) {
-                NavigationBar {
-                    val tabs = listOf(
-                        Triple("dashboard", "Home", Icons.Default.Home),
-                        Triple("bookmarks", "Bookmarks", Icons.Default.Favorite),
-                        Triple("stats", "Progress", Icons.Default.BarChart),
-                        Triple("profile", "Profile", Icons.Default.Person)
-                    )
-                    tabs.forEach { (route, label, icon) ->
-                        NavigationBarItem(
-                            selected = currentRoute == route,
-                            onClick = {
-                                navController.navigate(route) {
-                                    // Pop up to the start destination of the graph to avoid building up a large stack
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = { Icon(icon, contentDescription = label) },
-                            label = { Text(label) }
-                        )
-                    }
-                }
-            }
-        }
+        modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
         NavHost(
             navController = navController, 
@@ -144,47 +110,36 @@ fun OpenPrepApp(progressRepo: ProgressRepository, viewModel: MainViewModel = vie
                 ServerSetupScreen(uiState = uiState, onConnect = { url -> coroutineScope.launch { progressRepo.saveServerUrl(url) }; viewModel.connectToServer(url) })
             }
 
-            // --- MAIN TABS ---
+            // --- MAIN DASHBOARD WITH BOTTOM TABS ---
             composable("dashboard") {
                 if (uiState is AppState.Success) {
-                    DashboardScreen(
+                    MainAppScreen(
                         manifest = (uiState as AppState.Success).manifest,
-                        progressRepo = progressRepo, currentServerUrl = viewModel.currentServerUrl,
-                        onSearchClick = { navController.navigate("search") },
+                        progressRepo = progressRepo, 
+                        currentServerUrl = viewModel.currentServerUrl,
+                        onDisconnect = { coroutineScope.launch { progressRepo.clearServerUrl() }; viewModel.resetSetup(); navController.navigate("setup") { popUpTo(0) } },
+                        onSyncRequested = { viewModel.connectToServer(viewModel.currentServerUrl) },
+                        onSearchClick = { navController.navigate("search") }, // FIXED!
                         onSubjectClick = { subjectId -> navController.navigate("subject/$subjectId") },
                         onModuleClick = onModuleClicked
                     )
-                } else { LaunchedEffect(Unit) { navController.navigate("setup") { popUpTo(0) } } }
-            }
-
-            composable("bookmarks") {
-                if (uiState is AppState.Success) {
-                    BookmarksScreen(manifest = (uiState as AppState.Success).manifest, progressRepo = progressRepo, currentServerUrl = viewModel.currentServerUrl, onModuleClick = onModuleClicked)
-                }
-            }
-
-            composable("stats") {
-                if (uiState is AppState.Success) {
-                    StatsScreen(manifest = (uiState as AppState.Success).manifest, progressRepo = progressRepo)
-                }
-            }
-
-            composable("profile") {
-                if (uiState is AppState.Success) {
-                    ProfileScreen(
-                        progressRepo = progressRepo, 
-                        supportUrl = (uiState as AppState.Success).manifest.supportUrl,
-                        onNavigateToDownloads = { navController.navigate("downloads") }, 
-                        onSyncRequested = { viewModel.connectToServer(viewModel.currentServerUrl) },
-                        onDisconnect = { coroutineScope.launch { progressRepo.clearServerUrl() }; viewModel.resetSetup(); navController.navigate("setup") { popUpTo(0) } }
-                    )
+                } else { 
+                    LaunchedEffect(Unit) { navController.navigate("setup") { popUpTo(0) } } 
                 }
             }
 
             // --- SUB SCREENS ---
+            
+            // FIXED: Re-added the Global Search Screen to the router
             composable("search") {
                 if (uiState is AppState.Success) {
-                    SearchScreen(manifest = (uiState as AppState.Success).manifest, progressRepo = progressRepo, currentServerUrl = viewModel.currentServerUrl, onNavigateBack = { navController.popBackStack() }, onModuleClick = onModuleClicked)
+                    SearchScreen(
+                        manifest = (uiState as AppState.Success).manifest, 
+                        progressRepo = progressRepo, 
+                        currentServerUrl = viewModel.currentServerUrl, 
+                        onNavigateBack = { navController.popBackStack() }, 
+                        onModuleClick = onModuleClicked
+                    )
                 }
             }
 
