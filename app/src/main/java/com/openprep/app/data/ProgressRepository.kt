@@ -21,7 +21,7 @@ data class ProgressBackup(
     val history: String = "[]",
     val streak: Int = 0,
     val lastOpened: Long = 0L,
-    val themeMode: Int = 0 // 0=System, 1=Light, 2=Dark
+    val themeMode: Int = 0 
 )
 
 class ProgressRepository(private val context: Context) {
@@ -69,7 +69,7 @@ class ProgressRepository(private val context: Context) {
         } catch (e: Exception) { false }
     }
 
-    // --- HISTORY, STREAK, PROFILE, URL, SCORES, BOOKMARKS (Same as before) ---
+    // --- HISTORY, STREAK, PROFILE, URL, SCORES, BOOKMARKS ---
     private val HISTORY_KEY = stringPreferencesKey("learning_history")
     fun getHistory(): Flow<List<HistoryItem>> = context.dataStore.data.map { prefs -> try { json.decodeFromString<List<HistoryItem>>(prefs[HISTORY_KEY] ?: "[]") } catch (e: Exception) { emptyList() } }
     suspend fun addHistoryItem(title: String, type: String) { context.dataStore.edit { prefs -> val cur = try { json.decodeFromString<List<HistoryItem>>(prefs[HISTORY_KEY] ?: "[]") } catch (e: Exception) { emptyList() }; prefs[HISTORY_KEY] = json.encodeToString((listOf(HistoryItem(title, type, System.currentTimeMillis())) + cur).take(30)) } }
@@ -105,7 +105,15 @@ class ProgressRepository(private val context: Context) {
 
     fun getModuleScore(moduleId: String): Flow<Int?> = context.dataStore.data.map { it[intPreferencesKey("score_$moduleId")] }
     suspend fun saveModuleScore(moduleId: String, score: Int) { context.dataStore.edit { prefs -> val cur = prefs[intPreferencesKey("score_$moduleId")] ?: 0; if (score > cur) prefs[intPreferencesKey("score_$moduleId")] = score } }
+    
     fun isModuleCompleted(moduleId: String): Flow<Boolean> = context.dataStore.data.map { it[booleanPreferencesKey("completed_$moduleId")] ?: false }
+    
+    // NEW: Get a list of all completed module IDs for progress tracking
+    fun getCompletedModules(): Flow<Set<String>> = context.dataStore.data.map { prefs ->
+        prefs.asMap().filter { it.key.name.startsWith("completed_") && it.value == true }
+            .keys.map { it.name.removePrefix("completed_") }.toSet()
+    }
+    
     suspend fun markModuleCompleted(moduleId: String) { context.dataStore.edit { it[booleanPreferencesKey("completed_$moduleId")] = true } }
 
     private val BOOKMARKS_KEY = stringSetPreferencesKey("bookmarked_modules")
