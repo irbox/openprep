@@ -7,7 +7,7 @@ data class CourseManifest(
     val courseName: String,
     val version: String,
     val supportUrl: String? = null,
-    val officialDrugDirectoryUrl: String? = "https://medlineplus.gov/druginformation.html", // Default authoritative clinical portal
+    val officialDrugDirectoryUrl: String? = "https://medlineplus.gov/druginformation.html",
     val subjects: List<Subject>
 )
 
@@ -34,4 +34,14 @@ data class Module(
 data class VideoTimestamp(
     val title: String,
     val seconds: Long
+)
+
+// Official Government Reference Item
+@Serializable
+data class DrugItem(
+    val name: String,
+    val category: String,
+    val officialUrl: String,
+    val description: String = "",
+    val authority: String = "Government Authority"
 )
