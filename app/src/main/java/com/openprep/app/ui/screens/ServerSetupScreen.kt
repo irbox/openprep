@@ -93,7 +93,7 @@ fun ServerSetupScreen(
             // Layman-Proof Demo: 1-Tap Load
             OutlinedButton(
                 onClick = {
-                    onConnect("https://gist.githubusercontent.com/irbox/openprep/main")
+                    onConnect("https://gist.githubusercontent.com/irbox/f701593c2c13ee40f87bad73a4a92ae5/raw/32074cf97f9c86872fa73825b01bb8e46f45f638")
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(14.dp)
