@@ -107,18 +107,37 @@ fun OpenPrepApp(progressRepo: ProgressRepository, viewModel: MainViewModel = vie
             ServerSetupScreen(uiState = uiState, onConnect = { url -> coroutineScope.launch { progressRepo.saveServerUrl(url) }; viewModel.connectToServer(url) })
         }
 
+        // ... inside MainActivity.kt (Replace just the NavHost routing blocks)
         composable("dashboard") {
             if (uiState is AppState.Success) {
-                MainAppScreen(
-                    manifest = (uiState as AppState.Success).manifest, progressRepo = progressRepo, currentServerUrl = viewModel.currentServerUrl,
-                    onDisconnect = { coroutineScope.launch { progressRepo.clearServerUrl() }; viewModel.resetSetup(); navController.navigate("setup") { popUpTo(0) } },
-                    onSyncRequested = { viewModel.connectToServer(viewModel.currentServerUrl) },
-                    onSearchClick = { navController.navigate("search") }, 
-                    onSubjectClick = { subjectId -> navController.navigate("subject/$subjectId") },
-                    onModuleClick = onModuleClicked
-                )
+                // FIXED: We removed MainAppScreen wrapper! Native Scaffold used here!
+                var selectedTab by remember { mutableStateOf(0) }
+                Scaffold(
+                    bottomBar = {
+                        NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                            NavigationBarItem(selected = selectedTab == 0, onClick = { selectedTab = 0 }, icon = { Icon(Icons.Default.Home, "Home") }, label = { Text("Home") })
+                            NavigationBarItem(selected = selectedTab == 1, onClick = { selectedTab = 1 }, icon = { Icon(Icons.Default.LibraryBooks, "QBank") }, label = { Text("QBank") })
+                            NavigationBarItem(selected = selectedTab == 2, onClick = { selectedTab = 2 }, icon = { Icon(Icons.Default.Bookmark, "Saved") }, label = { Text("Saved") })
+                            NavigationBarItem(selected = selectedTab == 3, onClick = { selectedTab = 3 }, icon = { Icon(Icons.Default.Person, "Profile") }, label = { Text("Profile") })
+                        }
+                    }
+                ) { innerPadding ->
+                    Box(modifier = Modifier.padding(innerPadding)) {
+                        when (selectedTab) {
+                            0 -> DashboardScreen((uiState as AppState.Success).manifest, progressRepo, viewModel.currentServerUrl, { navController.navigate("search") }, { s -> navController.navigate("subject/$s") }, onModuleClicked)
+                            // 1 -> QBank Screen (Could just be Subject Screen filtered to "qbank")
+                            2 -> SavedScreen((uiState as AppState.Success).manifest, progressRepo, viewModel.currentServerUrl, onModuleClicked)
+                            3 -> ProfileScreen(progressRepo, (uiState as AppState.Success).manifest.supportUrl, { viewModel.connectToServer(viewModel.currentServerUrl) }, { viewModel.resetSetup(); navController.navigate("setup") { popUpTo(0) } })
+                        }
+                    }
+                }
             } else { LaunchedEffect(Unit) { navController.navigate("setup") { popUpTo(0) } } }
         }
+        
+        // ... (Keep other sub-routes)
+
+        // USE SMART VIDEO PLAYER!
+        composable("videoPlayer/{id}/{url}/{title}") { backStackEntry -> val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString()); val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString()); SmartVideoPlayerScreen(videoUrl = url, title = title, onNavigateBack = { navController.popBackStack() }) }
 
         composable("search") {
             if (uiState is AppState.Success) {
