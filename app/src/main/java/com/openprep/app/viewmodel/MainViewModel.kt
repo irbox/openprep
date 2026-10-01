@@ -3,7 +3,6 @@ package com.openprep.app.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.openprep.app.data.ProgressRepository
 import com.openprep.app.model.CourseManifest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,18 +28,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val client = OkHttpClient()
     private val json = Json { ignoreUnknownKeys = true }
     private val cacheFile = File(application.filesDir, "cached_manifest.json")
-    
-    // We need the repo here to update the streak automatically
-    private val progressRepo = ProgressRepository(application)
 
     var currentServerUrl: String = ""
         private set
 
     fun connectToServer(serverUrl: String) {
         currentServerUrl = serverUrl.trimEnd('/')
-
-        // Update Gamification Streak!
-        viewModelScope.launch { progressRepo.updateDailyStreak() }
 
         if (cacheFile.exists()) {
             try {
