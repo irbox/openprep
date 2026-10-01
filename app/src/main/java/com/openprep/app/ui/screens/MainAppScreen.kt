@@ -20,13 +20,12 @@ fun MainAppScreen(
     onSyncRequested: () -> Unit,
     onSearchClick: () -> Unit,
     onCustomModuleClick: () -> Unit,
-    onDrugIndexClick: () -> Unit,
+    onOpenDeck: (String) -> Unit,
     onSubjectClick: (String) -> Unit,
     onModuleClick: (Module) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
 
-    // Hardware back button takes user back to Home Tab instead of closing app
     BackHandler(enabled = selectedTab != 0) {
         selectedTab = 0
     }
@@ -35,9 +34,10 @@ fun MainAppScreen(
         bottomBar = {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                 NavigationBarItem(selected = selectedTab == 0, onClick = { selectedTab = 0 }, icon = { Icon(Icons.Default.Home, "Home") }, label = { Text("Home") })
-                NavigationBarItem(selected = selectedTab == 1, onClick = { selectedTab = 1 }, icon = { Icon(Icons.Default.Bookmark, "Saved") }, label = { Text("Saved") })
-                NavigationBarItem(selected = selectedTab == 2, onClick = { selectedTab = 2 }, icon = { Icon(Icons.Default.BarChart, "Analytics") }, label = { Text("Analytics") })
-                NavigationBarItem(selected = selectedTab == 3, onClick = { selectedTab = 3 }, icon = { Icon(Icons.Default.Person, "Profile") }, label = { Text("Profile") })
+                NavigationBarItem(selected = selectedTab == 1, onClick = { selectedTab = 1 }, icon = { Icon(Icons.Default.Style, "Flashcards") }, label = { Text("Cards") })
+                NavigationBarItem(selected = selectedTab == 2, onClick = { selectedTab = 2 }, icon = { Icon(Icons.Default.Bookmark, "Saved") }, label = { Text("Saved") })
+                NavigationBarItem(selected = selectedTab == 3, onClick = { selectedTab = 3 }, icon = { Icon(Icons.Default.BarChart, "Analytics") }, label = { Text("Stats") })
+                NavigationBarItem(selected = selectedTab == 4, onClick = { selectedTab = 4 }, icon = { Icon(Icons.Default.Person, "Profile") }, label = { Text("Profile") })
             }
         }
     ) { paddingValues ->
@@ -49,13 +49,13 @@ fun MainAppScreen(
                     currentServerUrl = currentServerUrl,
                     onSearchClick = onSearchClick,
                     onCustomModuleClick = onCustomModuleClick,
-                    onDrugIndexClick = onDrugIndexClick,
                     onSubjectClick = onSubjectClick,
                     onModuleClick = onModuleClick
                 )
-                1 -> SavedScreen(manifest, progressRepo, currentServerUrl, onModuleClick)
-                2 -> StatsScreen(manifest, progressRepo)
-                3 -> ProfileScreen(progressRepo, manifest.supportUrl, onSyncRequested, onDisconnect)
+                1 -> FlashcardHubScreen(manifest = manifest, onOpenDeck = onOpenDeck)
+                2 -> SavedScreen(manifest, progressRepo, currentServerUrl, onModuleClick)
+                3 -> StatsScreen(manifest, progressRepo)
+                4 -> ProfileScreen(progressRepo, manifest.supportUrl, onSyncRequested, onDisconnect)
             }
         }
     }
