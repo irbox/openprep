@@ -19,12 +19,13 @@ fun MainAppScreen(
     onDisconnect: () -> Unit,
     onSyncRequested: () -> Unit,
     onSearchClick: () -> Unit,
+    onCustomModuleClick: () -> Unit,
+    onDrugIndexClick: () -> Unit,
     onSubjectClick: (String) -> Unit,
     onModuleClick: (Module) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
 
-    // UX FIX: Hardware Back Button takes you to Home Tab instead of closing app
     BackHandler(enabled = selectedTab != 0) {
         selectedTab = 0
     }
@@ -41,8 +42,17 @@ fun MainAppScreen(
     ) { paddingValues ->
         Surface(modifier = Modifier.padding(paddingValues), color = MaterialTheme.colorScheme.background) {
             when (selectedTab) {
-                0 -> DashboardScreen(manifest, progressRepo, currentServerUrl, onSearchClick, onSubjectClick, onModuleClick)
-                1 -> SavedScreen(manifest, progressRepo, currentServerUrl, onModuleClick) // The New Unified Hub
+                0 -> DashboardScreen(
+                    manifest = manifest,
+                    progressRepo = progressRepo,
+                    currentServerUrl = currentServerUrl,
+                    onSearchClick = onSearchClick,
+                    onCustomModuleClick = onCustomModuleClick,
+                    onDrugIndexClick = onDrugIndexClick,
+                    onSubjectClick = onSubjectClick,
+                    onModuleClick = onModuleClick
+                )
+                1 -> SavedScreen(manifest, progressRepo, currentServerUrl, onModuleClick)
                 2 -> StatsScreen(manifest, progressRepo)
                 3 -> ProfileScreen(progressRepo, manifest.supportUrl, onSyncRequested, onDisconnect)
             }
