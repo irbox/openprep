@@ -48,7 +48,7 @@ fun ModuleCardItem(
     ElevatedCard(
         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
@@ -62,9 +62,15 @@ fun ModuleCardItem(
                 else -> Icons.Default.Info
             }
 
-            Box(modifier = Modifier.size(52.dp).clip(RoundedCornerShape(12.dp)).background(IconBgLight), contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
                 if (iconContent != null) {
-                    Icon(imageVector = iconContent, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                    Icon(imageVector = iconContent, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(26.dp))
                 } else {
                     Icon(painter = painterResource(id = R.drawable.ic_subject_mcq), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
                 }
@@ -93,7 +99,9 @@ fun ModuleCardItem(
                         val mime = when (module.type.lowercase()) { "pdf" -> "application/pdf"; "image" -> "image/*"; else -> "video/mp4" }
                         val ext = when (module.type.lowercase()) { "pdf" -> ".pdf"; "image" -> ".jpg"; else -> ".mp4" }
                         DownloadHelper.downloadFile(context, fullUrl, module.title + ext, mime)
-                    }) { Icon(Icons.Default.CloudDownload, contentDescription = "Download", tint = TextSecLight) }
+                    }) {
+                        Icon(Icons.Default.CloudDownload, contentDescription = "Download", tint = TextSecLight)
+                    }
                 }
 
                 IconButton(onClick = { coroutineScope.launch { progressRepo.toggleBookmark(module.id) } }) {
