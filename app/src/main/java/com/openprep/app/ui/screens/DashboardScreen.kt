@@ -1,7 +1,5 @@
 package com.openprep.app.ui.screens
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,7 +20,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,17 +37,17 @@ fun DashboardScreen(
     currentServerUrl: String,
     onSearchClick: () -> Unit,
     onCustomModuleClick: () -> Unit,
+    onDrugIndexClick: () -> Unit,
     onSubjectClick: (String) -> Unit,
     onModuleClick: (Module) -> Unit
 ) {
-    val context = LocalContext.current
     val lastPlayedId by progressRepo.getLastPlayedModuleId().collectAsState(initial = null)
     val lastPlayedModule = manifest.subjects.flatMap { it.modules }.find { it.id == lastPlayedId }
     val userProfile by progressRepo.getUserProfile().collectAsState(initial = Pair("Learner", ""))
     val completedIds by progressRepo.getCompletedModules().collectAsState(initial = emptySet())
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        // TOP HEADER: Branding & User greeting (No streak badge)
+        // TOP HEADER: Clean branding & search icon (Scorestreak completely removed)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -85,7 +82,7 @@ fun DashboardScreen(
         }
 
         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
-            // HERO BANNER: Resume Learning
+            // HERO: Resume Learning
             if (lastPlayedModule != null) {
                 item {
                     val bannerGradient = Brush.linearGradient(listOf(Color(0xFF00E676), Color(0xFF1DE9B6)))
@@ -122,7 +119,7 @@ fun DashboardScreen(
                 }
             }
 
-            // CLINICAL QUICK ACTIONS: Modular Test Generator & Official Drug Reference
+            // MODULAR TOOLS: Custom Test Generator & Official Government Reference
             item {
                 Row(
                     modifier = Modifier
@@ -150,30 +147,23 @@ fun DashboardScreen(
                     Card(
                         modifier = Modifier
                             .weight(1f)
-                            .clickable {
-                                val url = manifest.officialDrugDirectoryUrl ?: "https://medlineplus.gov/druginformation.html"
-                                try {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                                } catch (e: Exception) {
-                                    // Fallback handled safely
-                                }
-                            },
+                            .clickable { onDrugIndexClick() },
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.OpenInBrowser, contentDescription = null, tint = Color(0xFF3B82F6))
+                            Icon(Icons.Default.Policy, contentDescription = null, tint = Color(0xFF3B82F6))
                             Spacer(Modifier.width(8.dp))
                             Column {
-                                Text("Drug Portal", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
-                                Text("Govt Reference", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                                Text("Drug Portals", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                                Text("Govt Directories", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                             }
                         }
                     }
                 }
             }
 
-            // SUBJECTS GRID WITH COMPLETION METERS
+            // CURRICULUM SUBJECTS GRID
             item {
                 Text(
                     "Subjects & Curriculum",
@@ -188,7 +178,7 @@ fun DashboardScreen(
                     columns = GridCells.Fixed(2),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 1000.dp)
+                        .heightIn(max = 1200.dp)
                         .padding(horizontal = 20.dp),
                     contentPadding = PaddingValues(bottom = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -220,7 +210,7 @@ fun DashboardScreen(
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Spacer(Modifier.height(4.dp))
-                                    Text("${(progressPercent * 100).toInt()}% Done", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                                    Text("${(progressPercent * 100).toInt()}% Completed", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                                 }
                             }
                         }
