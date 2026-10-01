@@ -2,8 +2,10 @@ package com.openprep.app.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items // FIXED IMPORT
+import androidx.compose.foundation.lazy.items 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,25 +21,45 @@ fun SearchScreen(
     manifest: CourseManifest,
     progressRepo: ProgressRepository,
     currentServerUrl: String,
+    onNavigateBack: () -> Unit,
     onModuleClick: (Module) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var active by remember { mutableStateOf(true) } // SearchBar is active immediately
+    
     val allModules = manifest.subjects.flatMap { it.modules }
     val filteredModules = if (searchQuery.isBlank()) emptyList() else allModules.filter { it.title.contains(searchQuery, true) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            placeholder = { Text("Search for videos, notes, or quizzes...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-            singleLine = true
-        )
-
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), contentPadding = PaddingValues(bottom = 16.dp)) {
-            items(filteredModules) { module ->
-                ModuleCardItem(module = module, progressRepo = progressRepo, currentServerUrl = currentServerUrl, onClick = { onModuleClick(module) })
+    Scaffold { paddingValues ->
+        SearchBar(
+            modifier = Modifier.fillMaxWidth().padding(paddingValues),
+            query = searchQuery,
+            onQueryChange = { searchQuery = it },
+            onSearch = { active = false },
+            active = active,
+            onActiveChange = { 
+                active = it 
+                if (!active && searchQuery.isBlank()) {
+                    onNavigateBack() // Close if empty and deactivated
+                }
+            },
+            placeholder = { Text("Search videos, notes, quizzes...") },
+            leadingIcon = { 
+                IconButton(onClick = onNavigateBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back") }
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { searchQuery = "" }) { Icon(Icons.Default.Close, contentDescription = "Clear") }
+                }
+            }
+        ) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), 
+                contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp)
+            ) {
+                items(filteredModules) { module ->
+                    ModuleCardItem(module = module, progressRepo = progressRepo, currentServerUrl = currentServerUrl, onClick = { onModuleClick(module) })
+                }
             }
         }
     }
