@@ -2,7 +2,7 @@ package com.openprep.app.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable // <-- ADDED MISSING IMPORT
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -155,7 +155,7 @@ fun QuizScreen(quizUrl: String, onNavigateBack: () -> Unit, viewModel: QuizViewM
                         Text(text = question.text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Medium)
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Tip: Long-press any option to cross it out.",
+                            "Tip: Long-press an option to eliminate it.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
