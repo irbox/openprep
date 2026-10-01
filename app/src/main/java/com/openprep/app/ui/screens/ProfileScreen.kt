@@ -24,7 +24,6 @@ import java.io.FileOutputStream
 fun ProfileScreen(
     progressRepo: ProgressRepository,
     supportUrl: String?,
-    onNavigateToDownloads: () -> Unit,
     onSyncRequested: () -> Unit,
     onDisconnect: () -> Unit
 ) {
@@ -47,9 +46,9 @@ fun ProfileScreen(
         AlertDialog(onDismissRequest = { showEditProfile = false }, title = { Text("Edit Profile") }, text = { Column { OutlinedTextField(value = nameInput, onValueChange = { nameInput = it }, label = { Text("Name") }); Spacer(Modifier.height(8.dp)); OutlinedTextField(value = examInput, onValueChange = { examInput = it }, label = { Text("Target Exam") }) } }, confirmButton = { Button(onClick = { coroutineScope.launch { progressRepo.saveUserProfile(nameInput, examInput) }; showEditProfile = false }) { Text("Save") } })
     }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Profile & Settings", fontWeight = FontWeight.Bold) }) }) { paddingValues ->
+    Scaffold(topBar = { TopAppBar(title = { Text("Profile & Settings", fontWeight = FontWeight.Bold) }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)) }) { paddingValues ->
         Column(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(16.dp))
@@ -62,16 +61,15 @@ fun ProfileScreen(
             }
 
             Text("App Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.DarkMode, contentDescription = null, tint = MaterialTheme.colorScheme.primary); Spacer(Modifier.width(16.dp)); Text("App Theme", fontWeight = FontWeight.Medium) }
                     TextButton(onClick = { coroutineScope.launch { progressRepo.setThemeMode((currentTheme + 1) % 3) } }) { Text(when(currentTheme) { 1 -> "Light"; 2 -> "Dark"; else -> "System" }) }
                 }
             }
             
-            // REDUNDANCY FIX: Integrated Support/Doubts here
             if (supportUrl != null) {
-                Card(modifier = Modifier.fillMaxWidth(), onClick = { try { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(supportUrl))) } catch (e: Exception) {} }) {
+                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), onClick = { try { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(supportUrl))) } catch (e: Exception) {} }) {
                     Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.HelpCenter, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(16.dp))
@@ -80,8 +78,7 @@ fun ProfileScreen(
                 }
             }
 
-            Card(modifier = Modifier.fillMaxWidth(), onClick = onNavigateToDownloads) { Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.CloudDownload, contentDescription = null, tint = MaterialTheme.colorScheme.primary); Spacer(Modifier.width(16.dp)); Text("Manage Offline Downloads", fontWeight = FontWeight.Medium) } }
-            Card(modifier = Modifier.fillMaxWidth(), onClick = { onSyncRequested(); Toast.makeText(context, "Checking updates...", Toast.LENGTH_SHORT).show() }) { Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Sync, contentDescription = null, tint = MaterialTheme.colorScheme.primary); Spacer(Modifier.width(16.dp)); Column { Text("Sync Content", fontWeight = FontWeight.Medium); Text("Check for new modules", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f)) } } }
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), onClick = { onSyncRequested(); Toast.makeText(context, "Checking updates...", Toast.LENGTH_SHORT).show() }) { Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Sync, contentDescription = null, tint = MaterialTheme.colorScheme.primary); Spacer(Modifier.width(16.dp)); Column { Text("Sync Content", fontWeight = FontWeight.Medium); Text("Check for new modules", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f)) } } }
 
             Text("Data Ownership (BYOS)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
