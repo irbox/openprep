@@ -1,7 +1,5 @@
 package com.openprep.app
 
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -9,13 +7,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -115,34 +111,14 @@ fun OpenPrepApp(progressRepo: ProgressRepository, viewModel: MainViewModel = vie
                     onSyncRequested = { viewModel.connectToServer(viewModel.currentServerUrl) },
                     onSearchClick = { navController.navigate("search") },
                     onCustomModuleClick = { navController.navigate("customModule") },
-                    onDrugIndexClick = { navController.navigate("drugIndex") },
+                    onOpenDeck = { deckUrl ->
+                        val encoded = URLEncoder.encode(deckUrl, StandardCharsets.UTF_8.toString())
+                        navController.navigate("treasures/$encoded")
+                    },
                     onSubjectClick = { subjectId -> navController.navigate("subject/$subjectId") },
                     onModuleClick = onModuleClicked
                 )
             } else { LaunchedEffect(Unit) { navController.navigate("setup") { popUpTo(0) } } }
-        }
-
-        composable("saved") {
-            if (uiState is AppState.Success) {
-                SavedScreen((uiState as AppState.Success).manifest, progressRepo, viewModel.currentServerUrl, onModuleClicked)
-            }
-        }
-
-        composable("stats") {
-            if (uiState is AppState.Success) {
-                StatsScreen((uiState as AppState.Success).manifest, progressRepo)
-            }
-        }
-
-        composable("profile") {
-            if (uiState is AppState.Success) {
-                ProfileScreen(
-                    progressRepo = progressRepo,
-                    supportUrl = (uiState as AppState.Success).manifest.supportUrl,
-                    onSyncRequested = { viewModel.connectToServer(viewModel.currentServerUrl) },
-                    onDisconnect = { coroutineScope.launch { progressRepo.clearServerUrl() }; viewModel.resetSetup(); navController.navigate("setup") { popUpTo(0) } }
-                )
-            }
         }
 
         composable("customModule") {
@@ -157,10 +133,6 @@ fun OpenPrepApp(progressRepo: ProgressRepository, viewModel: MainViewModel = vie
                     }
                 )
             }
-        }
-
-        composable("drugIndex") {
-            DrugIndexScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         composable("search") {
@@ -206,7 +178,10 @@ fun OpenPrepApp(progressRepo: ProgressRepository, viewModel: MainViewModel = vie
         composable("quiz/{id}/{url}") { backStackEntry -> val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString()); QuizScreen(quizUrl = url, onNavigateBack = { navController.popBackStack() }) }
         composable("pdfViewer/{url}/{title}") { backStackEntry -> val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString()); val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString()); PdfViewerScreen(pdfUrl = url, title = title, onNavigateBack = { navController.popBackStack() }) }
         composable("webView/{url}/{title}") { backStackEntry -> val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString()); val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString()); WebViewScreen(url = url, title = title, onNavigateBack = { navController.popBackStack() }) }
-        composable("treasures/{url}") { backStackEntry -> val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString()); TreasuresScreen(url = url, onNavigateBack = { navController.popBackStack() }) }
+        composable("treasures/{url}") { backStackEntry ->
+            val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString())
+            TreasuresScreen(url = url, progressRepo = progressRepo, onNavigateBack = { navController.popBackStack() })
+        }
         composable("imageViewer/{url}/{title}") { backStackEntry -> val url = URLDecoder.decode(backStackEntry.arguments?.getString("url") ?: "", StandardCharsets.UTF_8.toString()); val title = URLDecoder.decode(backStackEntry.arguments?.getString("title") ?: "", StandardCharsets.UTF_8.toString()); ImageViewerScreen(imageUrl = url, title = title, onNavigateBack = { navController.popBackStack() }) }
     }
 }
