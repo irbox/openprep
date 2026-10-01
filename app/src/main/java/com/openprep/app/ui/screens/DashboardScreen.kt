@@ -1,5 +1,7 @@
 package com.openprep.app.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,18 +40,17 @@ fun DashboardScreen(
     currentServerUrl: String,
     onSearchClick: () -> Unit,
     onCustomModuleClick: () -> Unit,
-    onDrugIndexClick: () -> Unit,
     onSubjectClick: (String) -> Unit,
     onModuleClick: (Module) -> Unit
 ) {
+    val context = LocalContext.current
     val lastPlayedId by progressRepo.getLastPlayedModuleId().collectAsState(initial = null)
     val lastPlayedModule = manifest.subjects.flatMap { it.modules }.find { it.id == lastPlayedId }
     val userProfile by progressRepo.getUserProfile().collectAsState(initial = Pair("Learner", ""))
-    val currentStreak by progressRepo.getCurrentStreak().collectAsState(initial = 0)
     val completedIds by progressRepo.getCompletedModules().collectAsState(initial = emptySet())
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        // TOP HEADER
+        // TOP HEADER: Branding & User greeting (No streak badge)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -77,22 +79,13 @@ fun DashboardScreen(
                     Text(manifest.courseName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onSearchClick) {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
-                }
-                Surface(color = Color(0xFFFFF3E0), shape = RoundedCornerShape(50)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
-                        Icon(Icons.Default.LocalFireDepartment, contentDescription = "Streak", tint = Color(0xFFFF9800), modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("$currentStreak", fontWeight = FontWeight.Bold, color = Color(0xFFE65100))
-                    }
-                }
+            IconButton(onClick = onSearchClick) {
+                Icon(Icons.Default.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.onBackground)
             }
         }
 
         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
-            // HERO: Resume Learning
+            // HERO BANNER: Resume Learning
             if (lastPlayedModule != null) {
                 item {
                     val bannerGradient = Brush.linearGradient(listOf(Color(0xFF00E676), Color(0xFF1DE9B6)))
@@ -129,7 +122,7 @@ fun DashboardScreen(
                 }
             }
 
-            // PRO CLINICAL TOOLS (Marrow Custom Test & Drug Reference Index)
+            // CLINICAL QUICK ACTIONS: Modular Test Generator & Official Drug Reference
             item {
                 Row(
                     modifier = Modifier
@@ -138,32 +131,49 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Card(
-                        modifier = Modifier.weight(1f).clickable { onCustomModuleClick() },
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onCustomModuleClick() },
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.DashboardCustomize, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.Default.Tune, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             Spacer(Modifier.width(8.dp))
-                            Text("Custom Test", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                            Column {
+                                Text("Custom Test", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                                Text("Modular Generator", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                            }
                         }
                     }
 
                     Card(
-                        modifier = Modifier.weight(1f).clickable { onDrugIndexClick() },
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                val url = manifest.officialDrugDirectoryUrl ?: "https://medlineplus.gov/druginformation.html"
+                                try {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                } catch (e: Exception) {
+                                    // Fallback handled safely
+                                }
+                            },
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.MedicalServices, contentDescription = null, tint = Color(0xFF3B82F6))
+                            Icon(Icons.Default.OpenInBrowser, contentDescription = null, tint = Color(0xFF3B82F6))
                             Spacer(Modifier.width(8.dp))
-                            Text("Drug Index", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                            Column {
+                                Text("Drug Portal", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                                Text("Govt Reference", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                            }
                         }
                     }
                 }
             }
 
-            // SUBJECT GRID WITH COMPLETION PROGRESS
+            // SUBJECTS GRID WITH COMPLETION METERS
             item {
                 Text(
                     "Subjects & Curriculum",
@@ -210,7 +220,7 @@ fun DashboardScreen(
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Spacer(Modifier.height(4.dp))
-                                    Text("${(progressPercent * 100).toInt()}% Completed", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                                    Text("${(progressPercent * 100).toInt()}% Done", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                                 }
                             }
                         }
