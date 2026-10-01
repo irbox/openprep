@@ -69,8 +69,11 @@ fun StatsScreen(
                     }
                 }
 
-                // VARIABLE IN SCOPE: Calculated before usage
-                val percentile = if (totalQuizzes > 0) ((totalScore.toFloat() / (totalQuizzes * 5).coerceAtLeast(1)) * 100).coerceIn(10f, 99f) else 78f
+                val calculatedPercentile = if (totalQuizzes > 0) {
+                    ((totalScore.toFloat() / (totalQuizzes * 5).coerceAtLeast(1)) * 100).coerceIn(10f, 99f)
+                } else {
+                    78f
+                }
 
                 val rankGradient = Brush.linearGradient(listOf(Color(0xFF1E3A8A), Color(0xFF3B82F6)))
                 Card(
@@ -85,7 +88,7 @@ fun StatsScreen(
                                 Text("ESTIMATED PERCENTILE", color = Color.White.copy(alpha = 0.8f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
                             }
                             Spacer(Modifier.height(8.dp))
-                            Text("${percentile.toInt()}th Percentile", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("${calculatedPercentile.toInt()}th Percentile", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = Color.White)
                             Spacer(Modifier.height(4.dp))
                             Text("Pacing: 1:18 Mins / Question (Competitive Velocity)", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
                         }
@@ -106,7 +109,7 @@ fun StatsScreen(
                         Column(modifier = Modifier.padding(14.dp)) {
                             Text("Accuracy", fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(4.dp))
-                            Text("${percentile.toInt()}%", style = MaterialTheme.typography.titleMedium, color = Color(0xFF10B981))
+                            Text("${calculatedPercentile.toInt()}%", style = MaterialTheme.typography.titleMedium, color = Color(0xFF10B981))
                         }
                     }
                 }
