@@ -3,7 +3,7 @@ package com.openprep.app.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items // FIXED IMPORT
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -32,7 +32,7 @@ fun SubjectScreen(
     val filteredModules = if (selectedFilter == "All") {
         subject.modules
     } else {
-        val typeFilter = when(selectedFilter) {
+        val typeFilter = when (selectedFilter) {
             "Videos" -> "video"
             "Notes" -> "pdf"
             "QBank" -> "qbank"
@@ -61,8 +61,11 @@ fun SubjectScreen(
                     FilterChip(
                         selected = isSelected,
                         onClick = { selectedFilter = filter },
-                        label = { Text(filter, fontWeight = if(isSelected) FontWeight.Bold else FontWeight.Normal) },
-                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.primary, selectedLabelColor = Color.White),
+                        label = { Text(filter, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = Color.White
+                        ),
                         shape = RoundedCornerShape(50)
                     )
                 }
@@ -70,10 +73,13 @@ fun SubjectScreen(
 
             if (filteredModules.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                    Text("No modules found.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                    Text("No modules found for this filter.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp)
+                ) {
                     items(filteredModules) { module ->
                         ModuleCardItem(module, progressRepo, currentServerUrl) { onModuleClick(module) }
                     }
