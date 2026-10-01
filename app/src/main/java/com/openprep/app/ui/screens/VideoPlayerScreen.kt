@@ -47,7 +47,6 @@ fun VideoPlayerScreen(videoUrl: String, title: String, onNavigateBack: () -> Uni
     val playbackSpeeds = listOf(1.0f, 1.25f, 1.5f, 2.0f)
     var currentSpeedIndex by remember { mutableIntStateOf(0) }
 
-    // FIXED: Properly restore system UI when leaving the video screen!
     DisposableEffect(Unit) {
         val window = activity?.window
         window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -56,7 +55,6 @@ fun VideoPlayerScreen(videoUrl: String, title: String, onNavigateBack: () -> Uni
         onDispose {
             window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-            // Bring back the status bar and navigation bar globally!
             if (window != null) {
                 WindowCompat.getInsetsController(window, window.decorView).show(WindowInsetsCompat.Type.systemBars())
             }
@@ -104,7 +102,7 @@ fun VideoPlayerScreen(videoUrl: String, title: String, onNavigateBack: () -> Uni
         topBar = {
             if (!isLandscape) {
                 TopAppBar(
-                    title = { Text(text = title) },
+                    title = { Text(text = title, maxLines = 1) },
                     navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.Default.ArrowBack, "Back") } },
                     actions = {
                         TextButton(onClick = { currentSpeedIndex = (currentSpeedIndex + 1) % playbackSpeeds.size }) {
@@ -127,6 +125,8 @@ fun VideoPlayerScreen(videoUrl: String, title: String, onNavigateBack: () -> Uni
                         useController = true
                         resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                         layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                        
+                        // PRO FEATURE: 10 second fast forward/rewind increments
                         setShowFastForwardButton(true)
                         setShowRewindButton(true)
                     }
