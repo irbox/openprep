@@ -2,12 +2,11 @@ package com.openprep.app.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable // <-- ADDED MISSING IMPORT
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -67,19 +66,16 @@ fun QuizScreen(quizUrl: String, onNavigateBack: () -> Unit, viewModel: QuizViewM
                     if (uiState is QuizState.Active) {
                         val state = uiState as QuizState.Active
 
-                        // Question Palette Trigger (1 to N questions popup)
                         IconButton(onClick = { showQuestionPalette = true }) {
                             Icon(Icons.Default.GridView, contentDescription = "All Questions")
                         }
 
-                        // Read Aloud / TTS Action
                         IconButton(onClick = {
                             ttsHelper.speak(state.manifest.questions[state.currentQuestionIndex].text)
                         }) {
                             Icon(Icons.Default.VolumeUp, "Read Aloud", tint = MaterialTheme.colorScheme.primary)
                         }
 
-                        // Flag for Review
                         val isMarked = state.markedForReview.contains(state.currentQuestionIndex)
                         IconButton(onClick = { viewModel.toggleMarkForReview() }) {
                             Icon(
@@ -116,7 +112,6 @@ fun QuizScreen(quizUrl: String, onNavigateBack: () -> Unit, viewModel: QuizViewM
                     }
 
                     Column {
-                        // HEADER: Progress & Difficulty Badge
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -144,7 +139,6 @@ fun QuizScreen(quizUrl: String, onNavigateBack: () -> Unit, viewModel: QuizViewM
 
                         Spacer(Modifier.height(16.dp))
 
-                        // CLINICAL IMAGE
                         if (!question.imageUrl.isNullOrBlank()) {
                             AsyncImage(
                                 model = question.imageUrl,
@@ -167,7 +161,6 @@ fun QuizScreen(quizUrl: String, onNavigateBack: () -> Unit, viewModel: QuizViewM
                         )
                         Spacer(Modifier.height(16.dp))
 
-                        // OPTIONS WITH PEER PERCENTAGES
                         question.options.forEachIndexed { index, optionText ->
                             val isSelected = state.selectedOption == index
                             val isCorrect = index == question.correctOptionIndex
@@ -219,7 +212,6 @@ fun QuizScreen(quizUrl: String, onNavigateBack: () -> Unit, viewModel: QuizViewM
                             }
                         }
 
-                        // MARROW-STYLE: Peer Accuracy & Guess Tagging
                         if (!state.hasSubmittedAnswer) {
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
                                 Checkbox(checked = isGuessAnswer, onCheckedChange = { isGuessAnswer = it })
@@ -227,7 +219,6 @@ fun QuizScreen(quizUrl: String, onNavigateBack: () -> Unit, viewModel: QuizViewM
                             }
                         }
 
-                        // EXPLANATION WITH AUDIO/TTS
                         if (state.hasSubmittedAnswer) {
                             Spacer(Modifier.height(16.dp))
                             Card(
@@ -265,7 +256,6 @@ fun QuizScreen(quizUrl: String, onNavigateBack: () -> Unit, viewModel: QuizViewM
                         }
                     }
 
-                    // QUESTION PALETTE BOTTOM SHEET (Jumping 1 to N questions like DBMCI / Marrow)
                     if (showQuestionPalette) {
                         ModalBottomSheet(onDismissRequest = { showQuestionPalette = false }) {
                             Column(modifier = Modifier.padding(20.dp)) {
@@ -287,7 +277,6 @@ fun QuizScreen(quizUrl: String, onNavigateBack: () -> Unit, viewModel: QuizViewM
                                                     else MaterialTheme.colorScheme.surfaceVariant
                                                 )
                                                 .clickable {
-                                                    // Move directly to question
                                                     while (state.currentQuestionIndex < idx) { viewModel.nextQuestion() }
                                                     showQuestionPalette = false
                                                 },
